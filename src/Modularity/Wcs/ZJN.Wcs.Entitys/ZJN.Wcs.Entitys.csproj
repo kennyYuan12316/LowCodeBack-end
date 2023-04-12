@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <DocumentationFile>bin\Debug\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ZJN.Plc\ZJN.Plc.csproj" />
+    <ProjectReference Include="..\..\Common\HSZ.Common\HSZ.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Entity\" />
+    <Folder Include="Dto\" />
+    <Folder Include="Mapper\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="S7.Net">
+      <HintPath>..\..\..\..\docs\dll\S7.Net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,157 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Entity\zjnTask\**" />
+    <Compile Remove="Mapper\BaseOutorder\**" />
+    <Compile Remove="Mapper\zjnTask\**" />
+    <EmbeddedResource Remove="Entity\zjnTask\**" />
+    <EmbeddedResource Remove="Mapper\BaseOutorder\**" />
+    <EmbeddedResource Remove="Mapper\zjnTask\**" />
+    <None Remove="Entity\zjnTask\**" />
+    <None Remove="Mapper\BaseOutorder\**" />
+    <None Remove="Mapper\zjnTask\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\HSZ.Common\HSZ.Common.csproj" />
+    <ProjectReference Include="..\..\WorkFlow\HSZ.WorkFlow.Entitys\HSZ.WorkFlow.Entitys.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Dto\BaseSupplier\" />
+    <Folder Include="Dto\BaseAisle\" />
+    <Folder Include="Dto\HardList\" />
+    <Folder Include="Dto\BaseGoods\" />
+    <Folder Include="Dto\HardSrm\" />
+    <Folder Include="Dto\BaseBill\" />
+    <Folder Include="Dto\TaskInterface\" />
+    <Folder Include="Dto\zjnWorkDevice\" />
+    <Folder Include="Dto\TaskInterfaceApplyLog\" />
+    <Folder Include="Dto\zjnBaseLesGoods\" />
+    <Folder Include="Dto\TableT1\" />
+    <Folder Include="Dto\hltHrEmployee\" />
+    <Folder Include="Dto\hltHrDepartment\" />
+    <Folder Include="Dto\hltHrPost\" />
+    <Folder Include="Dto\hltHrBusiness\" />
+    <Folder Include="Dto\hltHrFactory\" />
+    <Folder Include="Dto\hltHrJob\" />
+    <Folder Include="Dto\hltHrTemplate\" />
+    <Folder Include="Dto\hltHrShineupon\" />
+    <Folder Include="Dto\hltHrRegular\" />
+    <Folder Include="Dto\hltHrLog\" />
+    <Folder Include="Dto\hltHrError\" />
+    <Folder Include="Dto\hltHrTransfer\" />
+    <Folder Include="Dto\hltHrUnusual\" />
+    <Folder Include="Dto\hltHrSynchronize\" />
+    <Folder Include="Dto\hltHrT1\" />
+    <Folder Include="Dto\hltHrT2\" />
+    <Folder Include="Dto\hltHrT3\" />
+    <Folder Include="Dto\hltHrT4\" />
+    <Folder Include="Dto\hltHrT5\" />
+    <Folder Include="Dto\hltHrT6\" />
+    <Folder Include="Dto\hltT\" />
+    <Folder Include="Dto\test01\" />
+    <Folder Include="Entity\BaseSupplier\" />
+    <Folder Include="Entity\BaseAisle\" />
+    <Folder Include="Entity\HardList\" />
+    <Folder Include="Entity\HardSrm\" />
+    <Folder Include="Entity\BaseBill\" />
+    <Folder Include="Entity\TaskInterface\" />
+    <Folder Include="Entity\zjnWorkDevice\" />
+    <Folder Include="Entity\TaskInterfaceApplyLog\" />
+    <Folder Include="Entity\zjnBaseLesGoods\" />
+    <Folder Include="Entity\TableT1\" />
+    <Folder Include="Entity\hltHrEmployee\" />
+    <Folder Include="Entity\hltHrDepartment\" />
+    <Folder Include="Entity\hltHrPost\" />
+    <Folder Include="Entity\hltHrBusiness\" />
+    <Folder Include="Entity\hltHrFactory\" />
+    <Folder Include="Entity\hltHrJob\" />
+    <Folder Include="Entity\hltHrTemplate\" />
+    <Folder Include="Entity\hltHrShineupon\" />
+    <Folder Include="Entity\hltHrRegular\" />
+    <Folder Include="Entity\hltHrLog\" />
+    <Folder Include="Entity\hltHrError\" />
+    <Folder Include="Entity\hltHrTransfer\" />
+    <Folder Include="Entity\hltHrUnusual\" />
+    <Folder Include="Entity\hltHrSynchronize\" />
+    <Folder Include="Entity\hltHrT1\" />
+    <Folder Include="Entity\hltHrT2\" />
+    <Folder Include="Entity\hltHrT3\" />
+    <Folder Include="Entity\hltHrT4\" />
+    <Folder Include="Entity\hltHrT5\" />
+    <Folder Include="Entity\hltHrT6\" />
+    <Folder Include="Entity\hltT\" />
+    <Folder Include="Entity\test01\" />
+    <Folder Include="Mapper\BaseSupplier\" />
+    <Folder Include="Mapper\BaseAisle\" />
+    <Folder Include="Mapper\HardList\" />
+    <Folder Include="Mapper\HardSrm\" />
+    <Folder Include="Mapper\BaseBill\" />
+    <Folder Include="Mapper\TaskInterface\" />
+    <Folder Include="Mapper\TaskInterface\" />
+    <Folder Include="Mapper\TaskInterfaceApplyLog\" />
+
+    <Folder Include="Mapper\zjnBaseLesGoods\" />
+
+    <Folder Include="Mapper\TableT1\" />
+
+    <Folder Include="Mapper\hltHrEmployee\" />
+
+    <Folder Include="Mapper\hltHrDepartment\" />
+
+    <Folder Include="Mapper\hltHrPost\" />
+
+    <Folder Include="Mapper\hltHrBusiness\" />
+
+    <Folder Include="Mapper\hltHrFactory\" />
+
+    <Folder Include="Mapper\hltHrJob\" />
+
+    <Folder Include="Mapper\hltHrTemplate\" />
+
+    <Folder Include="Mapper\hltHrShineupon\" />
+
+    <Folder Include="Mapper\hltHrRegular\" />
+
+    <Folder Include="Mapper\hltHrLog\" />
+
+    <Folder Include="Mapper\hltHrError\" />
+
+    <Folder Include="Mapper\hltHrTransfer\" />
+
+    <Folder Include="Mapper\hltHrUnusual\" />
+
+    <Folder Include="Mapper\hltHrSynchronize\" />
+
+    <Folder Include="Mapper\hltHrT1\" />
+
+    <Folder Include="Mapper\hltHrT2\" />
+
+    <Folder Include="Mapper\hltHrT3\" />
+
+    <Folder Include="Mapper\hltHrT4\" />
+
+    <Folder Include="Mapper\hltHrT5\" />
+
+    <Folder Include="Mapper\hltHrT6\" />
+
+    <Folder Include="Mapper\hltT\" />
+
+    <Folder Include="Mapper\test01\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="S7.Net">
+      <HintPath>..\..\..\..\docs\dll\S7.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="Sharp7">
+      <HintPath>..\..\..\..\docs\dll\Sharp7.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,77 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Entity\zjnTask\**" />
+    <Compile Remove="Mapper\BaseOutorder\**" />
+    <Compile Remove="Mapper\zjnTask\**" />
+    <EmbeddedResource Remove="Entity\zjnTask\**" />
+    <EmbeddedResource Remove="Mapper\BaseOutorder\**" />
+    <EmbeddedResource Remove="Mapper\zjnTask\**" />
+    <None Remove="Entity\zjnTask\**" />
+    <None Remove="Mapper\BaseOutorder\**" />
+    <None Remove="Mapper\zjnTask\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\HSZ.Common\HSZ.Common.csproj" />
+    <ProjectReference Include="..\..\WorkFlow\HSZ.WorkFlow.Entitys\HSZ.WorkFlow.Entitys.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Dto\tableA\" />
+    <Folder Include="Dto\tableB\" />
+    <Folder Include="Dto\tableC\" />
+    <Folder Include="Dto\tableD\" />
+    <Folder Include="Dto\tableE\" />
+    <Folder Include="Dto\tableF\" />
+    <Folder Include="Dto\tableG\" />
+    <Folder Include="Dto\tableH\" />
+    <Folder Include="Dto\tableI\" />
+    <Folder Include="Dto\tableJ\" />
+    <Folder Include="Dto\tableK\" />
+    <Folder Include="Dto\tableL\" />
+    <Folder Include="Dto\tableM\" />
+    <Folder Include="Dto\tableN\" />
+    <Folder Include="Entity\tableA\" />
+    <Folder Include="Entity\tableB\" />
+    <Folder Include="Entity\tableC\" />
+    <Folder Include="Entity\tableD\" />
+    <Folder Include="Entity\tableE\" />
+    <Folder Include="Entity\tableF\" />
+    <Folder Include="Entity\tableG\" />
+    <Folder Include="Entity\tableH\" />
+    <Folder Include="Entity\tableI\" />
+    <Folder Include="Entity\tableJ\" />
+    <Folder Include="Entity\tableL\" />
+    <Folder Include="Entity\tableM\" />
+    <Folder Include="Entity\tableN\" />
+    <Folder Include="Mapper\tableA\" />
+    <Folder Include="Mapper\tableB\" />
+    <Folder Include="Mapper\tableC\" />
+    <Folder Include="Mapper\tableD\" />
+    <Folder Include="Mapper\tableE\" />
+    <Folder Include="Mapper\tableF\" />
+    <Folder Include="Mapper\tableG\" />
+    <Folder Include="Mapper\tableH\" />
+    <Folder Include="Mapper\tableJ\" />
+    <Folder Include="Mapper\tableI\" />
+    <Folder Include="Mapper\tableK\" />
+    <Folder Include="Mapper\tableL\" />
+    <Folder Include="Mapper\tableM\" />
+    <Folder Include="Mapper\tableN\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="S7.Net">
+      <HintPath>..\..\..\..\docs\dll\S7.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="Sharp7">
+      <HintPath>..\..\..\..\docs\dll\Sharp7.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "HSZ.Tenant.Entitys": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:51307;http://localhost:51308"
+    }
+  }
+}

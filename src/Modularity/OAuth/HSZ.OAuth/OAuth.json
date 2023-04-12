@@ -1,0 +1,6 @@
+{
+  "HSZ_App": {
+    "MultiTenancy": false,
+    "MultiTenancyDBInterFace": "http://localhost:51532/api/tenant/DbName/"
+  }
+}

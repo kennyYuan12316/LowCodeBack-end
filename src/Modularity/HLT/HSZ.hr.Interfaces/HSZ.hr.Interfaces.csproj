@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="ZjnWmsRoadwayGroup\**" />
+    <EmbeddedResource Remove="ZjnWmsRoadwayGroup\**" />
+    <None Remove="ZjnWmsRoadwayGroup\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Client\ZJN.Calb.Client.csproj" />
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Entitys\ZJN.Calb.Entitys.csproj" />
+
+    <ProjectReference Include="..\..\Common\HSZ.Common.Core\HSZ.Common.Core.csproj" />
+        <ProjectReference Include="..\HSZ.hr.Entitys\HSZ.hr.Entitys.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="tableA\" />
+    <Folder Include="tableB\" />
+    <Folder Include="tableC\" />
+    <Folder Include="tableD\" />
+    <Folder Include="tableE\" />
+    <Folder Include="tableF\" />
+    <Folder Include="tableG\" />
+    <Folder Include="tableH\" />
+    <Folder Include="tableI\" />
+    <Folder Include="tableJ\" />
+    <Folder Include="tableK\" />
+    <Folder Include="tableL\" />
+    <Folder Include="tableM\" />
+    <Folder Include="tableN\" />
+  </ItemGroup>
+
+</Project>

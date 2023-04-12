@@ -1,0 +1,72 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DocumentationFile>bin\Debug\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DocumentationFile>bin\Release\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ZJN.Plc\ZJN.Plc.csproj" />
+    <ProjectReference Include="..\..\Agv\ZJN.Agv.Entitys\ZJN.Agv.Entitys.csproj" />
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Client\ZJN.Calb.Client.csproj" />
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Entitys\ZJN.Calb.Entitys.csproj" />
+    <ProjectReference Include="..\..\Message\HSZ.Message\HSZ.Message.csproj" />
+    <ProjectReference Include="..\..\Wcs\ZJN.Wcs.Entitys\ZJN.Wcs.Entitys.csproj" />
+    <ProjectReference Include="..\..\Wcs\ZJN.Wcs.Interfaces\ZJN.Wcs.Interfaces.csproj" />
+    <ProjectReference Include="..\..\WorkFlow\HSZ.WorkFlow.Interfaces\HSZ.WorkFlow.Interfaces.csproj" />
+    <ProjectReference Include="..\HSZ.Wms.Interfaces\HSZ.Wms.Interfaces.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="BaseSupplier\" />
+    <Folder Include="BaseAisle\" />
+    <Folder Include="HardList\" />
+    <Folder Include="BaseGoods\" />
+    <Folder Include="HardSrm\" />
+    <Folder Include="BaseBill\" />
+    <Folder Include="TaskInterface\" />
+    <Folder Include="zjnWorkDevice\" />
+    <Folder Include="TaskInterfaceApplyLog\" />
+    <Folder Include="zjnBaseLesGoods\" />
+    <Folder Include="TableT1\" />
+    <Folder Include="hltHrEmployee\" />
+    <Folder Include="hltHrDepartment\" />
+    <Folder Include="hltHrPost\" />
+    <Folder Include="hltHrBusiness\" />
+    <Folder Include="hltHrFactory\" />
+    <Folder Include="hltHrJob\" />
+    <Folder Include="hltHrTemplate\" />
+    <Folder Include="hltHrShineupon\" />
+    <Folder Include="hltHrRegular\" />
+    <Folder Include="hltHrLog\" />
+    <Folder Include="hltHrError\" />
+    <Folder Include="hltHrTransfer\" />
+    <Folder Include="hltHrUnusual\" />
+    <Folder Include="hltHrSynchronize\" />
+    <Folder Include="hltHrT1\" />
+    <Folder Include="hltHrT2\" />
+    <Folder Include="hltHrT3\" />
+    <Folder Include="hltHrT4\" />
+    <Folder Include="hltHrT5\" />
+    <Folder Include="hltHrT6\" />
+    <Folder Include="hltT\" />
+    <Folder Include="test01\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="S7.Net">
+      <HintPath>..\..\..\..\docs\dll\S7.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="Sharp7">
+      <HintPath>..\..\..\..\docs\dll\Sharp7.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "HSZ.TaskScheduler.Entitys": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:51267;http://localhost:51268"
+    }
+  }
+}

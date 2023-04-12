@@ -1,0 +1,160 @@
+﻿using HSZ.Common.Helper;
+@*是否需要上传文件引用*@
+@if(Model.IsUplpad)
+{
+@:using HSZ.Common.Model;
+}
+using HSZ.Entitys.@(@Model.NameSpace);
+using HSZ.@(@Model.NameSpace).Entitys.Dto.@(@Model.ClassName);
+using Mapster;
+using System.Collections.Generic;
+
+namespace HSZ.@(@Model.NameSpace).Entitys.Mapper.@Model.MainTable
+{
+	public class Mapper : IRegister
+	{
+		public void Register(TypeAdapterConfig config)
+		{
+@*判断是否需要映射*@
+@if(Model.IsMapper)
+{
+@*判断WebType 1-纯表单,2-常规表单,3-流程列表单*@
+@if(Model.WebType == 1)
+{
+@{GetCrInputToEntity(); }
+}
+else if(Model.WebType == 2)
+{
+@{GetCrInputToEntity(); }
+@if(Model.AuxiliaryTable.Count == 0){
+@{GetEntityToInfoOutput();}
+}
+}
+else if(Model.WebType == 3 || Model.Type == 3)
+{
+@{GetCrInputToEntity(); }
+@{GetEntityToInfoOutput();}
+@{GetEntityToCrInput();}
+}
+}
+		}
+	}
+}
+@{
+	@*新增输入转实体*@
+	void GetCrInputToEntity()
+	{	
+			@:config.ForType<@(@Model.MainTable)CrInput, @(@Model.MainTable)Entity>()
+@*循环表字段*@
+@foreach (var column in Model.TableField)
+{
+@*判断hszKey不为空*@
+@if (column.hszKey != null && !column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+@*下拉框控件*@
+case "select":
+@*是否为多选*@
+@if(column.IsMultiple)
+{
+				@:.Map(dest => dest.@(@column.ColumnName), src => src.@(@column.LowerColumnName).ToJson())
+}
+break;
+@*复选框、级联、省市区、图片上传、文件上传*@
+case "checkbox":
+case "cascader":
+case "comSelect":
+case "address":
+case "uploadImg":
+case "uploadFz":
+				@:.Map(dest => dest.@(@column.ColumnName), src => src.@(@column.LowerColumnName).ToJson())
+break;
+}
+}
+}
+			@:;
+	}
+}
+@{
+	@*实体转详情输出*@
+	void GetEntityToInfoOutput()
+	{
+			@:config.ForType<@(@Model.MainTable)Entity, @(@Model.MainTable)InfoOutput>()
+@foreach (var column in Model.TableField)
+{
+@if (column.hszKey != null && !column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<string>>())
+}
+break;
+case "cascader":
+case "comSelect":
+case "address":
+@if(column.IsMultiple)
+{
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<List<string>>>())
+}
+else
+{
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<string>>())
+}
+break;
+case "checkbox":
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<string>>())
+break;
+case "uploadImg":
+case "uploadFz":
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<FileControlsModel>>())
+break;
+}
+}
+}
+			@:;
+	}
+}
+@{
+	@*实体转创建输入*@
+	void GetEntityToCrInput()
+	{
+			@:config.ForType<@(@Model.MainTable)Entity, @(@Model.MainTable)CrInput>()
+@foreach (var column in Model.TableField)
+{
+@if (column.hszKey != null && !column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<string>>())
+}
+break;
+case "cascader":
+case "comSelect":
+case "address":
+@if(column.IsMultiple)
+{
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<List<string>>>())
+}else{
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<string>>())
+}
+break;
+case "checkbox":
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<string>>())
+break;
+case "uploadImg":
+case "uploadFz":
+				@:.Map(dest => dest.@(@column.LowerColumnName), src => src.@(@column.ColumnName).ToObject<List<FileControlsModel>>())
+break;
+}
+}
+}
+			@:;
+	}
+}

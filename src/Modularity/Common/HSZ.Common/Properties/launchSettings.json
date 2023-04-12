@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "HSZ.Common": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:51251;http://localhost:51252"
+    }
+  }
+}

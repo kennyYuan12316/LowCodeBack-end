@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ZJN.Plc\ZJN.Plc.csproj" />
+    <ProjectReference Include="..\..\Wms\HSZ.Wms.Entitys\HSZ.Wms.Entitys.csproj" />
+    <ProjectReference Include="..\ZJN.Wcs.Entitys\ZJN.Wcs.Entitys.csproj" />
+  </ItemGroup>
+
+</Project>

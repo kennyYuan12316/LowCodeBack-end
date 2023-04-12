@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DocumentationFile>bin\Debug\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DocumentationFile>bin\Release\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\HSZ.Common.Core\HSZ.Common.Core.csproj" />
+    <ProjectReference Include="..\..\System\HSZ.System.Interfaces\HSZ.System.Interfaces.csproj" />
+    <ProjectReference Include="..\..\WorkFlow\HSZ.WorkFlow.Interfaces\HSZ.WorkFlow.Interfaces.csproj" />
+    <ProjectReference Include="..\HSZ.App.Interfaces\HSZ.Apps.Interfaces.csproj" />
+  </ItemGroup>
+
+</Project>

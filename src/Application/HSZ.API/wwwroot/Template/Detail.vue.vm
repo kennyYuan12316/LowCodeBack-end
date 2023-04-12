@@ -1,0 +1,699 @@
+<template>
+@switch(Model.PopupType)
+{
+case "fullScreen":
+@if(Model.WebType != 1)
+{
+	@:<transition name="el-zoom-in-center">
+}else if(Model.WebType == 1)
+{
+	@:<transition name="HSZ-common-layout">
+}
+		@:<div class="HSZ-preview-main">
+			@:<div class="HSZ-common-page-header">
+@if(Model.WebType != 1)
+{
+				@:<el-page-header @@back="goBack" content="详情"/>
+}
+				@:<div class="options">
+@if(Model.FormDataModel.hasPrintBtn)
+{
+					@:<el-button type="primary" @@click="printBrowseVisible=true">{{ '@(@Model.FormDataModel.printButtonText)' }}</el-button>
+}
+					@:<el-button @@click="goBack">@(@Model.FormDataModel.cancelButtonText)</el-button>
+				@:</div>
+			@:</div>
+			@:<div :style="{margin: '0 auto',width:'@(@Model.FormDataModel.fullScreenWidth)'}">
+				@:<el-row :gutter="15" class="@(@Model.FormDataModel.formStyle) main">
+@{ GenerateFormControls(); }
+				@:</el-row>
+			@:</div>
+@if(Model.FormDataModel.hasPrintBtn)
+{
+			@:<print-browse :visible.sync="printBrowseVisible" :id="printId" :formId="dataForm.id" />
+}
+		@:</div>
+	@:</transition>
+	break;
+case "general":
+	@:<el-dialog title="详情" :close-on-click-modal="false" :visible.sync="visible" class="HSZ-dialog HSZ-dialog_center" lock-scroll width="@(@Model.FormDataModel.generalWidth)">
+		@:<el-row :gutter="15" class="@(@Model.FormDataModel.formStyle)" >
+@{ GenerateFormControls(); }
+		@:</el-row>
+		@:<span slot="footer" class="dialog-footer">
+			@:<el-button @@click="visible=false">@(@Model.FormDataModel.cancelButtonText)</el-button>
+@if(Model.FormDataModel.hasPrintBtn)
+{
+			@:<el-button type="primary" @@click="printBrowseVisible=true">@(@Model.FormDataModel.printButtonText)</el-button>
+}
+		@:</span>
+@if(Model.FormDataModel.hasPrintBtn)
+{
+		@:<print-browse :visible.sync="printBrowseVisible" :id="printId" :formId="dataForm.id" />
+}
+	@:</el-dialog>
+	break;
+case "drawer":
+	@:<el-drawer title="详情" :visible.sync="visible" :wrapperClosable="false" size="@(@Model.FormDataModel.drawerWidth)" append-to-body class="HSZ-common-drawer">
+		@:<div class="HSZ-flex-main">
+			@:<div class="dynamicForm dynamicDetail">
+@{ GenerateFormControls(); }
+			@:</div>
+			@:<div class="drawer-footer">
+@if(Model.FormDataModel.hasPrintBtn)
+{
+				@:<el-button type="primary" @@click="printBrowseVisible=true">@(@Model.FormDataModel.printButtonText)</el-button>
+}
+				@:<el-button @@click="visible = false">@(@Model.FormDataModel.cancelButtonText)</el-button>
+			@:</div>
+		@:</div>
+     @:</el-drawer>
+	break;
+}
+</template>
+<script>
+	import request from '@@/utils/request'
+@if(Model.FormDataModel.hasPrintBtn)
+{
+	@:import PrintBrowse from '@@/components/PrintBrowse'
+}
+	export default {
+@if(Model.FormDataModel.hasPrintBtn)
+{
+		@:components: { PrintBrowse },
+}
+		props: [],
+		data() {
+			return {
+@if(Model.FormDataModel.hasPrintBtn)
+{
+				@:printBrowseVisible: false,
+				@:printId: '@(@Model.FormDataModel.printId)',
+}
+				loading: false,
+				visible: false,
+				dataForm: {
+					id:'',
+@foreach(var children in Model.FormList)
+{
+@switch(children.hszKey)
+{
+case "checkbox":
+case "cascader":
+case "uploadImg":
+case "uploadFz":
+case "address":
+case "comSelect":
+@if(children.DefaultValue == null || children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):[],
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+break;
+case "select":
+@if(children.Multiple)
+{
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):[],
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+}else{
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):"@(@children.DefaultValue)",
+}
+}
+break;
+case "numInput":
+case "date":
+case "rate":
+case "slider":
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+break;
+case "switch":
+					@:@(@children.LowerName):@(@children.DefaultValue ? "1" : "0"),
+break;
+case "table":
+					@:@(@children.LowerName)List:[],
+break;
+default:
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):"@(@children.DefaultValue)",
+}
+break;
+}
+}
+				},
+@foreach(var item in Model.OptionsList)
+{
+@if(item.hszKey == "collapse")
+{
+				@:@(@item.Name):@(@item.Content),
+}
+else if(item.hszKey == "tab")
+{
+				@:@(@item.Name):"@(@item.Content)",
+}
+}
+			}
+		},
+		methods: {
+			goBack() {
+                this.$emit('refresh')
+            },
+			init(id, isDetail) {
+				this.dataForm.id = id || 0;
+                this.visible = true;
+                this.isDetail = isDetail || false;
+				this.$nextTick(() => {
+					this.$refs['@(@Model.FormDataModel.formRef)'].resetFields();
+					if (this.dataForm.id) {
+						request({
+							url: '/api/@(@Model.NameSpace)/@(@Model.ClassName)/' + this.dataForm.id,
+							method: 'get'
+						}).then(res =>{
+							this.dataForm = res.data;
+@foreach(var item in Model.FormList)
+{
+@if(item.hszKey == "checkbox" || item.hszKey == "cascader" || item.hszKey == "uploadImg" || item.hszKey == "uploadFz" || item.hszKey == "address")
+{
+							@:if(!this.dataForm.@(@item.LowerName))this.dataForm.@(@item.LowerName)=[];
+}
+}
+						})
+					}
+				})
+			},
+@foreach(var item in Model.FormList)
+{
+@if(item.ShowSummary)
+{
+			@:get@(@item.Name)(param) {
+				@:const summaryField = @(@item.SummaryField)
+				@:const { columns, data } = param;
+				@:const sums = [];
+				@:columns.forEach((column, index) => {
+					@:if (index === 0) {
+						@:sums[index] = '合计';
+						@:return;
+					@:}
+					@:if (!summaryField.includes(column.property)) {
+						@:sums[index] = '';
+						@:return;
+					@:}
+					@:const values = data.map(item => Number(item[column.property]));
+					@:if (!values.every(value => isNaN(value))) {
+						@:sums[index] = values.reduce((prev, curr) => {
+							@:const value = Number(curr);
+							@:if (!isNaN(value)) {
+								@:return prev + curr;
+							@:} else {
+								@:return prev;
+							@:}
+						@:}, 0);
+					@:} else {
+						@:sums[index] = '';
+					@:}
+				@:});
+				@:return sums
+			@:},
+}
+}
+		}
+	}
+</script>
+@{
+	void GenerateFormControls()
+	{
+				<el-form ref="@(@Model.FormDataModel.formRef)" :model="@(@Model.FormDataModel.formModel)" size="@(@Model.FormDataModel.size)" label-width="@(@Model.FormDataModel.labelWidth)px" label-position="@(@Model.FormDataModel.labelPosition)">
+@foreach(var item in Model.FormAllContols)
+{
+@switch(item.hszKey)
+{
+@*栅格布局*@
+case "row":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-row :gutter="@(@item.Gutter)">
+@{GenerateFormChildrenControls(item.Children,item.Gutter);}
+						@:</el-row>
+					@:</el-col>
+break;
+case "table":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+@if(item.ShowTitle)
+{
+							@:<div class="HSZ-common-title">
+								@:<h2>@(@item.Label)</h2>
+							@:</div>
+}
+						@:<el-table :data="dataForm.@(@item.LowerChildTableName)List" size='mini' @(@Model.IsSummary ? "show-summary :summary-method='get" + @item.ChildTableName + "'" : "")>
+							@:<el-table-column type="index" width="50" label="序号" align="center" />
+@foreach (var childrens in item.Children)
+{
+@switch(childrens.hszKey)
+{
+case "uploadFz":
+								@:<el-table-column @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+									@:<template slot-scope="scope">
+										@:<@(@childrens.Tag) v-model="scope.row.@(@childrens.LowerName)" @(@childrens.FileSize)@(@childrens.SizeUnit)@(@childrens.Limit)@(@childrens.ButtonText)disabled detailed></@(@childrens.Tag)>
+									@:</template>
+								@:</el-table-column>
+break;
+case "uploadImg":
+								@:<el-table-column @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+									@:<template slot-scope="scope">
+										@:<@(@childrens.Tag) v-model="scope.row.@(@childrens.LowerName)" @(@childrens.FileSize)@(@childrens.SizeUnit)@(@childrens.Limit)disabled detailed></@(@childrens.Tag)>
+									@:</template>
+								@:</el-table-column>
+break;
+case "relationFormAttr":
+case "popupAttr":
+								@:<el-table-column @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+									@:<template slot-scope="scope">
+										@:<p>{{scope.row.@(@childrens.RelationField + "_" + @childrens.ShowField)}}</p>
+									@:</template>
+								@:</el-table-column>
+break;
+default:
+								@:<el-table-column prop="@(@childrens.LowerName)" @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+									@:<template slot-scope="scope">
+										@:<p>{{scope.row.@(@childrens.LowerName)}}</p>
+									@:</template>
+								@:</el-table-column>
+break;
+}
+}
+							@:</el-table>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "card":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-card class="mb-20" shadow="@(@item.Shadow)">
+@{GenerateFormChildrenControls(item.Children,item.Gutter);}
+						@:</el-card>
+					@:</el-col>
+break;
+case "collapse":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-collapse :accordion="@(@item.Accordion)" v-model="@(@item.Name)" class="mb-20">
+@foreach(var collapse in item.Children)
+{
+							@:<el-collapse-item title="@(@collapse.Title)" name="@(@collapse.Name)">
+@{GenerateFormChildrenControls(collapse.Children,item.Gutter);}
+							@:</el-collapse-item>
+}
+						@:</el-collapse>
+					@:</el-col>
+break;
+case "tab":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-tabs type="@(@item.Type)" tab-position="@(@item.TabPosition)" v-model="@(@item.Name)" class="mb-10">
+@foreach(var collapse in item.Children)
+{
+							@:<el-tab-pane label="@(@collapse.Title)">
+@{GenerateFormChildrenControls(collapse.Children,item.Gutter);}
+							@:</el-tab-pane>
+}
+						@:</el-tabs>
+					@:</el-col>
+break;
+case "divider":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+							@:<el-divider content-position="@(@item.Contentposition)">@(@item.Default)</el-divider>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "groupTitle":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+							@:<groupTitle content-position="@(@item.Contentposition)" content="@(@item.Content)"></groupTitle>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "HSZText":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+							@:<HSZ-Text value="@(@item.DefaultValue)" :textStyle='@(@item.TextStyle)' :style='@(@item.Style)'></HSZ-Text>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "button":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item>
+							@:<hsz-button align="@(@item.Align)" buttonText="@(@item.ButtonText)" type="@(@item.Type)"></hsz-button>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "uploadFz":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)@(@item.FileSize)@(@item.SizeUnit)@(@item.Limit)@(@item.ButtonText)disabled detailed></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "uploadImg":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item  label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)@(@item.FileSize)@(@item.SizeUnit)@(@item.Limit)disabled detailed></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+@*颜色选择器*@
+case "colorPicker":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)disabled></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+@*评分*@
+case "rate":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							 @:<@(@item.Tag) @(@item.vModel)@(@item.Style)@(@item.Max)disabled></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+@*滑块*@
+case "slider":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)@(@item.Step)@(@item.Max)disabled></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "editor":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<div v-html="dataForm.@(@item.LowerName)" disabled></div>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "relationFormAttr":
+case "popupAttr":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<p>{{dataForm.@(@item.RelationField + "_" + @item.ShowField)}}</p>
+						@:</el-form-item>
+					@:</el-col>
+break;
+default:
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<p>{{dataForm.@(@item.LowerName)}}</p>
+						@:</el-form-item>
+					@:</el-col>
+break;
+}
+}
+				</el-form>
+	}
+}
+@{
+	void GenerateFormChildrenControls(ICollection<CodeGenFormAllControlsDesign> childrenList, int gutter)
+	{
+@foreach(var item in childrenList)
+{
+@switch(item.hszKey)
+{
+@*栅格布局*@
+case "row":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-row :gutter="@(@gutter)">
+@{GenerateFormChildrenControls(item.Children, gutter);}
+						@:</el-row>
+					@:</el-col>
+break;
+case "table":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+@if(item.ShowTitle)
+{
+							@:<div class="HSZ-common-title">
+								@:<h2>@(@item.Label)</h2>
+							@:</div>
+}
+						@:<el-table :data="dataForm.@(@item.LowerChildTableName)List" size='mini' @(@Model.IsSummary ? "show-summary :summary-method='get" + @item.ChildTableName + "'" : "")>
+							@:<el-table-column type="index" width="50" label="序号" align="center" />
+@foreach (var childrens in item.Children)
+{
+@switch(childrens.hszKey)
+{
+case "uploadFz":
+								@:<el-table-column @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+									@:<template slot-scope="scope">
+										@:<@(@childrens.Tag) v-model="scope.row.@(@childrens.LowerName)" @(@childrens.FileSize)@(@childrens.SizeUnit)@(@childrens.Limit)@(@childrens.ButtonText)disabled detailed></@(@childrens.Tag)>
+									@:</template>
+								@:</el-table-column>
+break;
+case "uploadImg":
+								@:<el-table-column @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+									@:<template slot-scope="scope">
+										@:<@(@childrens.Tag) v-model="scope.row.@(@childrens.LowerName)" @(@childrens.FileSize)@(@childrens.SizeUnit)@(@childrens.Limit)></@(@childrens.Tag)>
+									@:</template>
+								@:</el-table-column>
+break;
+case "relationFormAttr":
+case "popupAttr":
+							@:<el-table-column @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+								@:<template slot-scope="scope">
+									@:<p>{{scope.row.@(@childrens.RelationField + "_" + @childrens.ShowField)}}</p>
+								@:</template>
+							@:</el-table-column>
+break;
+default:
+								@:<el-table-column prop="@(@childrens.LowerName)" @(@childrens.ColumnWidth)label="@(@childrens.Label)">
+									@:<template slot-scope="scope">
+										@:<p>{{scope.row.@(@childrens.LowerName)}}</p>
+									@:</template>
+								@:</el-table-column>
+break;
+}
+}
+							@:</el-table>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "card":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-card class="mb-20" shadow="@(@item.Shadow)">
+@{GenerateFormChildrenControls(item.Children,gutter);}
+						@:</el-card>
+					@:</el-col>
+break;
+case "collapse":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-collapse :accordion="@(@item.Accordion)" v-model="@(@item.Name)" class="mb-20">
+@foreach(var collapse in item.Children)
+{
+							@:<el-collapse-item title="@(@collapse.Title)" name="@(@collapse.Name)">
+@{GenerateFormChildrenControls(collapse.Children,gutter);}
+							@:</el-collapse-item>
+}
+						@:</el-collapse>
+					@:</el-col>
+break;
+case "tab":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-tabs type="@(@item.Type)" tab-position="@(@item.TabPosition)" v-model="@(@item.Name)" class="mb-10">
+@foreach(var collapse in item.Children)
+{
+							@:<el-tab-pane label="@(@collapse.Title)">
+@{GenerateFormChildrenControls(collapse.Children,gutter);}
+							@:</el-tab-pane>
+}
+						@:</el-tabs>
+					@:</el-col>
+break;
+case "divider":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+							@:<el-divider content-position="@(@item.Contentposition)">@(@item.Default)</el-divider>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "groupTitle":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+							@:<groupTitle content-position="@(@item.Contentposition)" content="@(@item.Content)"></groupTitle>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "HSZText":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label-width="@(@item.LabelWidth)px">
+							@:<HSZ-Text value="@(@item.DefaultValue)" :textStyle='@(@item.TextStyle)' :style='@(@item.Style)'></HSZ-Text>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "button":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item>
+							@:<hsz-button align="@(@item.Align)" buttonText="@(@item.ButtonText)" type="@(@item.Type)"></hsz-button>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "uploadFz":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)@(@item.FileSize)@(@item.SizeUnit)@(@item.Limit)@(@item.ButtonText)disabled detailed></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "uploadImg":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item  label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)@(@item.FileSize)@(@item.SizeUnit)@(@item.Limit)disabled detailed></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+@*颜色选择器*@
+case "colorPicker":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+@*评分*@
+case "rate":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							 @:<@(@item.Tag) @(@item.vModel)@(@item.Style)@(@item.Max)></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+@*滑块*@
+case "slider":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<@(@item.Tag) @(@item.vModel)@(@item.Step)@(@item.Max)></@(@item.Tag)>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "editor":
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<div v-html="dataForm.@(@item.LowerName)"></div>
+						@:</el-form-item>
+					@:</el-col>
+break;
+case "relationFormAttr":
+case "popupAttr":
+					@:<el-col :span="@(@item.Span)">
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<p>{{dataForm.@(@item.RelationField + "_" + @item.ShowField)}}</p>
+						@:</el-form-item>
+					@:</el-col>
+break;
+default:
+@if(item.NoShow == "")
+{
+					@:<el-col :span="@(@item.Span)">
+}else
+{
+					@:<el-col :span="@(@item.Span)" @(@item.NoShow)>
+}
+						@:<el-form-item label="@(@item.Label)" label-width="@(@item.LabelWidth)px">
+							@:<p>{{dataForm.@(@item.LowerName)}}</p>
+						@:</el-form-item>
+					@:</el-col>
+break;
+}
+}
+	}
+}

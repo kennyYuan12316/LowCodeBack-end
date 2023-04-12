@@ -1,0 +1,101 @@
+﻿using System;
+
+namespace HSZ.@(@Model.NameSpace).Entitys.Dto.@Model.ClassName
+{
+    /// <summary>
+    /// @(@Model.BusName)输入参数
+    /// </summary>
+    public class @(@Model.ClassName)ListOutput
+    {
+@foreach (var column in Model.TableField){
+
+@if(Model.AuxiliaryTable.Count > 0){
+
+@if (column.PrimaryKey){
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public @column.NetType a_@column.Alias { get; set; }
+        @:
+}else if (column.IsShow && !column.IsAuxiliary){
+switch(column.hszKey)
+{
+case "switch":
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public string a_@column.Alias { get; set; }
+        @:
+break;
+default:
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public @column.NetType a_@column.Alias { get; set; }
+        @:
+break;
+}
+}else if (column.IsShow && column.IsAuxiliary){
+switch(column.hszKey)
+{
+case "switch":
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public string a_@column.Alias { get; set; }
+        @:
+break;
+default:
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public @column.NetType a@(@column.TableNo)_@column.Alias { get; set; }
+        @:
+break;
+}
+}
+
+}else{
+@if (column.PrimaryKey){
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public @column.NetType @column.Alias { get; set; }
+        @:
+}
+else if (column.IsShow && !column.IsAuxiliary){
+switch(column.hszKey)
+{
+case "switch":
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public string @column.Alias { get; set; }
+        @:
+break;
+default:
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+        @:public @column.NetType @column.Alias { get; set; }
+        @:
+break;
+}
+}
+}
+}
+@if(Model.IsMainTable && Model.WebType == 3)
+{
+        @:/// <summary>
+        @:/// 流程状态
+        @:/// </summary>
+        @:public int flowState { get; set; }
+        @:
+        @:/// <summary>
+        @:/// 流程引擎ID
+        @:/// </summary>
+        @:public string flowId { get; set; }
+        @:
+}
+    }
+}

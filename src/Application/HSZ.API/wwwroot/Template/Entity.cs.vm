@@ -1,0 +1,30 @@
+﻿using HSZ.Common.Const;
+using SqlSugar;
+using System;
+
+namespace HSZ.Entitys.@(@Model.NameSpace)
+{
+    /// <summary>
+    /// @(@Model.BusName)
+    /// </summary>
+    [SugarTable("@(@Model.OriginalMainTableName)")]
+    [Tenant(ClaimConst.TENANT_ID)]
+    public class @(@Model.MainTable)Entity
+    {
+@foreach (var column in Model.TableField){
+@if(!column.IsAuxiliary)
+{
+        @:/// <summary>
+        @:/// @column.ColumnComment
+        @:/// </summary>
+if(@column.PrimaryKey){       
+        @:[SugarColumn(ColumnName = "@(@column.Alias)", IsPrimaryKey = true)]
+}else{
+        @:[SugarColumn(ColumnName = "@(@column.Alias)")]        
+}
+        @:public @column.NetType @column.ColumnName { get; set; }
+        @:
+}
+}
+    }
+}

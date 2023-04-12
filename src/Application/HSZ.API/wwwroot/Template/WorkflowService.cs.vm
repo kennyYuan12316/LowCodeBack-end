@@ -1,0 +1,1791 @@
+﻿using HSZ.Common.Core.Manager;
+using HSZ.Common.Enum;
+using HSZ.Common.Extension;
+using HSZ.Common.Filter;
+@if(Model.IsUplpad){
+@:using HSZ.Common.Model;
+}
+@if(Model.DbLinkId != "0")
+{
+@:using HSZ.ChangeDataBase;
+@:using HSZ.System.Entitys.System;
+}
+using HSZ.Dependency;
+using HSZ.DynamicApiController;
+using HSZ.Entitys.SubDev;
+using HSZ.FriendlyException;
+using HSZ.WorkFlow.Entitys;
+using HSZ.WorkFlow.Entitys.Enum;
+using HSZ.WorkFlow.Interfaces.FlowEngine;
+using HSZ.WorkFlow.Interfaces.FlowTask;
+using HSZ.WorkFlow.Interfaces.FlowTask.Repository;
+using HSZ.@(@Model.NameSpace).Interfaces.@Model.ClassName;
+using Mapster;
+using Microsoft.AspNetCore.Mvc;
+using SqlSugar.IOC;
+using SqlSugar;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using HSZ.@(@Model.NameSpace).Entitys;
+using HSZ.@(@Model.NameSpace).Entitys.Dto.@Model.ClassName;
+using Yitter.IdGenerator;
+using HSZ.Common.Helper;
+using HSZ.JsonSerialization;
+@if(Model.IsExport){
+@:using HSZ.Common.Model.NPOI;
+@:using HSZ.Common.Configuration;
+@:using HSZ.DataEncryption;
+@:using HSZ.ClayObject;
+}
+@if(Model.IsBillRule)
+{
+@:using HSZ.System.Interfaces.System;
+}
+using System.Text.RegularExpressions;
+
+namespace HSZ.@(@Model.NameSpace).@Model.ClassName
+{
+    /// <summary>
+    /// @(@Model.BusName)服务
+    /// </summary>
+    [ApiDescriptionSettings(Tag = "@(@Model.NameSpace)",Name = "@Model.ClassName", Order = 200)]
+    [Route("api/@(@Model.NameSpace)/[controller]")]
+    public class @(@Model.ClassName)Service : I@(@Model.ClassName)Service, IDynamicApiController, ITransient
+    {
+        private readonly ISqlSugarRepository<@(@Model.MainTable)Entity> _@(@Model.LowerMainTable)Repository;
+@foreach(var item in Model.AuxiliaryTable)
+{
+        @:private readonly ISqlSugarRepository<@(@item.TableName)Entity> _@(@item.LowerTableName)Repository;
+}
+@foreach (var item in Model.TableRelations)
+{
+        @:private readonly ISqlSugarRepository<@(@item.TableName)Entity> _@(@item.LowerTableName)Repository;
+}
+@if(Model.IsBillRule)
+{
+        @:private readonly IBillRullService _billRullService;
+}
+@if(Model.DbLinkId != "0"){
+        @:private readonly IDbLinkService _dbLinkService;
+        @:private readonly IChangeDataBase _changeDataBase;
+}
+        private readonly SqlSugarScope _db;
+        private readonly IUserManager _userManager;
+        private readonly IFlowTaskService _flowTaskService;
+        private readonly IFlowTaskRepository _flowTaskRepository;
+        private readonly IFlowEngineService _flowEngineService;
+
+        /// <summary>
+        /// 初始化一个<see cref="@(@Model.ClassName)Service"/>类型的新实例
+        /// </summary>
+        public @(@Model.ClassName)Service(ISqlSugarRepository<@(@Model.MainTable)Entity> @(@Model.LowerMainTable)Repository,
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:ISqlSugarRepository<@(@table.TableName)Entity> @(@table.LowerTableName)Repository,
+}
+@foreach(var table in Model.TableRelations){
+            @:ISqlSugarRepository<@(@table.TableName)Entity> @(@table.LowerTableName)Repository,
+}
+@if(Model.IsBillRule)
+{
+            @:IBillRullService billRullService,
+}
+@if(Model.DbLinkId != "0")
+{
+            @:IDbLinkService dbLinkService,
+            @:IChangeDataBase changeDataBase,
+}
+            IUserManager userManager,
+            IFlowTaskService flowTaskService,
+            IFlowTaskRepository flowTaskRepository,
+            IFlowEngineService flowEngineService)
+        {
+            _@(@Model.LowerMainTable)Repository = @(@Model.LowerMainTable)Repository;
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:_@(@table.LowerTableName)Repository = @(@table.LowerTableName)Repository;
+}
+@foreach(var table in Model.TableRelations)
+{
+            @:_@(@table.LowerTableName)Repository = @(@table.LowerTableName)Repository;
+}
+@if(Model.IsBillRule)
+{
+            @:_billRullService = billRullService;
+}
+@if(Model.DbLinkId != "0")
+{
+            @:_dbLinkService = dbLinkService;
+            @:_changeDataBase = changeDataBase;
+}
+            _flowTaskService = flowTaskService;
+            _flowTaskRepository = flowTaskRepository;
+            _flowEngineService = flowEngineService;
+            _userManager = userManager;
+            //只能作为事务处理
+            _db = DbScoped.SugarScope;
+        }
+@foreach(var item in Model.Function){
+if(@item.FullName == "info"){
+@:
+        @:/// <summary>
+        @:/// 获取@(@Model.BusName)
+        @:/// </summary>
+        @:/// <param name="id">参数</param>
+        @:/// <returns></returns>
+        @:[HttpGet("{id}")]
+        @:public async Task<dynamic> GetInfo(string id)
+        @:{
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+
+@*是否存在副表*@
+@if(Model.IsAuxiliaryTable)
+{
+            @:var output = (await _db.Queryable<@{GetCodeAAuxiliaryEntity();}>((@{GenCodeAuxiliaryQueryParameters();}) => new JoinQueryInfos(@{GetAssociativeTable();}))
+                @:.Where(a => a.@(@Model.PrimaryKey) == id)
+                @:.Select((@{GenCodeAuxiliaryQueryParameters();}) => new @(@Model.MainTable)InfoOutput
+                @:{
+                    @{GetEntityInfoOutput();}
+                @:}).Mapper((output) =>
+                @:{
+                    @{GetMapprtInfoOutput();}
+                @:}).ToListAsync()).FirstOrDefault();
+}else{
+            @:var output = (await _db.Queryable<@(@Model.MainTable)Entity>().FirstAsync(p => p.@(@Model.PrimaryKey) == id)).Adapt<@(@Model.MainTable)InfoOutput>();
+}
+
+}
+else
+{
+
+@if(Model.IsAuxiliaryTable)
+{
+            @:var output = (await _@(@Model.LowerMainTable)Repository.AsSugarClient().Queryable<@{GetCodeAAuxiliaryEntity();}>((@{GenCodeAuxiliaryQueryParameters();}) => new JoinQueryInfos(@{GetAssociativeTable();}))
+                @:.Where(a => a.@(@Model.PrimaryKey) == id)
+                @:.Select((@{GenCodeAuxiliaryQueryParameters();}) => new @(@Model.MainTable)InfoOutput
+                @:{
+                    @{GetEntityInfoOutput();}
+                @:}).Mapper((output) =>
+                @:{
+                    @{GetMapprtInfoOutput();}
+                @:}).ToListAsync()).FirstOrDefault();
+}else{
+            @:var output = (await _@(@Model.LowerMainTable)Repository.GetFirstAsync(p => p.@(@Model.PrimaryKey) == id)).Adapt<@(@Model.MainTable)InfoOutput>();
+}
+
+}
+@*子表循环*@
+@foreach (var table in Model.TableRelations)
+{
+            @:
+
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+            @:var @(@table.LowerTableName)List = await _db.Queryable<@(@table.TableName)Entity>().Where(w => w.@(@table.TableField) == output.@(@table.LowerRelationField)).ToListAsync();
+}else{
+            @:var @(@table.LowerTableName)List = await _@(@table.LowerTableName)Repository.GetListAsync(w => w.@(@table.TableField) == output.@(@table.LowerRelationField));
+}
+
+            @:output.@(@table.LowerTableName)List = @(@table.LowerTableName)List.Adapt<List<@(@table.TableName)InfoOutput>>();
+}
+            @:
+            @:return output;
+        @:}
+}
+else if(@item.FullName == "add"){
+@:
+        @:/// <summary>
+        @:/// 新建@(@Model.BusName)
+        @:/// </summary>
+        @:/// <param name="input">参数</param>
+        @:/// <returns></returns>
+        @:[HttpPost("")]
+        @:public async Task Create([FromBody] @(@Model.MainTable)CrInput input)
+        @:{
+            @:var userInfo = await _userManager.GetUserInfo();
+            @:var entity = input.Adapt<@(@Model.MainTable)Entity>();
+            @:entity.@(@Model.PrimaryKey) = YitIdHelper.NextId().ToString();
+@if(Model.IsAuxiliaryTable)
+{
+
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:
+            @:var entity@(@table.TableNo) = input.Adapt<@(@table.TableName)Entity>();
+            @:entity@(@table.TableNo).@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+}
+
+}
+@foreach(var column in Model.TableField)
+{
+
+@if(column.hszKey == "createTime" && column.IsAuxiliary)
+{
+            @:entity@(column.TableNo).@column.ColumnName = DateTime.Now;
+}else if(column.hszKey == "createTime" && column.IsAuxiliary){
+            @:entity@(column.TableNo).@column.ColumnName = DateTime.Now;
+}else if(column.hszKey == "createUser" && column.IsAuxiliary){
+            @:entity@(column.TableNo).@column.ColumnName = _userManager.UserId;
+}else if(column.hszKey == "currPosition" && column.IsAuxiliary){
+            @:entity@(column.TableNo).@column.ColumnName = userInfo.positionIds.FirstOrDefault() != null ? userInfo.positionIds.FirstOrDefault().id : null;
+}else if(column.hszKey == "currOrganize" && column.IsAuxiliary){
+            @:entity@(column.TableNo).@column.ColumnName = userInfo.organizeId;
+}else if(column.hszKey == "billRule" && column.IsAuxiliary){
+            @:entity@(column.TableNo).@(@column.ColumnName) = await _billRullService.GetBillNumber("@(@column.Rule)");
+}else if(column.hszKey == "createTime" && !column.IsAuxiliary){
+            @:entity.@column.ColumnName = DateTime.Now;
+}else if(column.hszKey == "createUser" && !column.IsAuxiliary){
+            @:entity.@column.ColumnName = _userManager.UserId;
+}else if(column.hszKey == "currPosition" && !column.IsAuxiliary){
+            @:entity.@column.ColumnName = userInfo.positionIds.FirstOrDefault() != null ? userInfo.positionIds.FirstOrDefault().id : null;
+}else if(column.hszKey == "currOrganize" && !column.IsAuxiliary){
+            @:entity.@column.ColumnName = userInfo.organizeId;
+}else if(column.hszKey == "billRule" && !column.IsAuxiliary){
+            @:entity.@(@column.ColumnName) = await _billRullService.GetBillNumber("@(@column.Rule)");
+}
+
+}
+@*跨库*@
+if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+            @:
+            @:try
+            @:{
+                @:_db.BeginTran();
+
+                @:await _db.Insertable<@(@Model.MainTable)Entity>(entity).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                @:
+@*存在副表*@
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:entity@(@table.TableNo).@(@table.TableField) = entity.@(@table.RelationField);
+                @:await _db.Insertable<@(@table.TableName)Entity>(entity@(table.TableNo)).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                @:
+}
+@*存在子表*@
+@foreach(var table in Model.TableRelations)
+{
+                @:var @(@table.LowerTableName)EntityList = input.@(@table.LowerTableName)List.Adapt<List<@(@table.TableName)Entity>>();
+                @:if(@(@table.LowerTableName)EntityList != null)
+                @:{
+                    @:foreach (var item in @(@table.LowerTableName)EntityList)
+                    @:{
+                        @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                        @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@*子表列配置*@
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@*存在单据控件*@
+@if(childer.hszKey == "billRule")
+{
+                        @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                    @:}
+                    @:await _db.Insertable<@(@table.TableName)Entity>(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                @:}
+                @:
+}
+                @:if (input.flowState == 0)
+                @:{
+                    @:var flowEngineEntity = await _flowEngineService.GetInfoByEnCode("@(@Model.EnCode)");
+                    @:await FlowSubmit(entity.Id, flowEngineEntity);
+                @:}
+
+                @:_db.CommitTran();
+            @:}
+            @:catch (Exception)
+            @:{
+                @:_db.RollbackTran();
+                @:throw HSZException.Oh(ErrorCode.COM1000);
+            @:}
+}else{
+
+            @:try
+            @:{
+                @:_db.BeginTran();
+                @:
+                @:await _@(@Model.LowerMainTable)Repository.AsInsertable(entity).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                @:
+@*存在副表*@
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:entity@(@table.TableNo).@(@table.TableField) = entity.@(@table.RelationField);
+                @:await _@(@table.LowerTableName)Repository.AsInsertable(entity@(table.TableNo)).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                @:
+}
+@*子表列配置*@
+@foreach(var table in Model.TableRelations)
+{
+                @:var @(@table.LowerTableName)EntityList = input.@(@table.LowerTableName)List.Adapt<List<@(@table.TableName)Entity>>();
+                @:if(@(@table.LowerTableName)EntityList != null)
+                @:{
+                    @:foreach (var item in @(@table.LowerTableName)EntityList)
+                    @:{
+                        @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                        @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@*子表列配置*@
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@*存在单据控件*@
+@if(childer.hszKey == "billRule")
+{
+                        @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                    @:}
+                    @:await _@(@table.LowerTableName)Repository.AsInsertable(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                @:}
+                @:
+}
+                @:if (input.flowState == 0)
+                @:{
+                    @:var flowEngineEntity = await _flowEngineService.GetInfoByEnCode("@(@Model.EnCode)");
+                    @:await FlowSubmit(entity.Id, flowEngineEntity);
+                @:}
+
+                @:_db.CommitTran();
+
+            @:}
+            @:catch (Exception)
+            @:{
+                @:_db.RollbackTran();
+                @:throw HSZException.Oh(ErrorCode.COM1000);
+            @:}
+}
+        @:}
+}
+else if(@item.FullName == "edit"){
+        @:
+        @:/// <summary>
+        @:/// 更新@(@Model.BusName)
+        @:/// </summary>
+        @:/// <param name="id">主键</param>
+        @:/// <param name="input">参数</param>
+        @:/// <returns></returns>
+        @:[HttpPut("{id}")]
+        @:public async Task Update(string id, [FromBody] @(@Model.MainTable)UpInput input)
+        @:{
+            @:var entity = input.Adapt<@(@Model.MainTable)Entity>();
+@if(Model.IsAuxiliaryTable){
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:var entity@(@table.TableNo) = input.Adapt<@(@table.TableName)Entity>();
+}
+}
+@foreach(var column in Model.TableField){
+if(@column.hszKey == "modifyTime" && column.IsAuxiliary){
+            @:entity@(column.TableNo).@column.ColumnName = DateTime.Now;
+}
+else if(@column.hszKey == "modifyUser" && column.IsAuxiliary){
+            @:entity@(column.TableNo).@column.ColumnName = _userManager.UserId;
+}
+else if(@column.hszKey == "modifyTime" && !column.IsAuxiliary){
+            @:entity.@column.ColumnName = DateTime.Now;
+}
+else if(@column.hszKey == "modifyUser" && !column.IsAuxiliary){
+            @:entity.@column.ColumnName = _userManager.UserId;
+}
+}
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+            @:
+            @:try
+            @:{
+                @://开启事务
+                @:_db.BeginTran();
+                @:
+                @:await _db.Updateable<@(@Model.MainTable)Entity>(entity).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                @:
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:await _db.Updateable<@(@table.TableName)Entity>(entity@(table.TableNo)).Where(it=> it.@(@table.TableField).Equals(entity.@(@table.RelationField))).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                @:
+}
+@foreach(var table in Model.TableRelations)
+{
+                @://清空原有数据
+                @:await _db.Deleteable<@(@table.TableName)Entity>().Where(it => it.@(@table.TableField) == entity.@(@table.RelationField)).ExecuteCommandAsync();
+                @:
+                @://新增新数据
+                @:var @(@table.LowerTableName)EntityList = input.@(@table.LowerTableName)List.Adapt<List<@(@table.TableName)Entity>>();
+                @:if(@(@table.LowerTableName)EntityList != null)
+                @:{
+                    @:foreach (var item in @(@table.LowerTableName)EntityList)
+                    @:{
+                        @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                        @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@if(childer.hszKey == "billRule")
+{
+                        @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                    @:}
+                    @:await _db.Insertable<@(@table.TableName)Entity>(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                @:}
+}
+                @:if ("0".Equals(input.flowState))
+                @:{
+                    @:var flowEngineEntity = await _flowEngineService.GetInfoByEnCode("@(@Model.EnCode)");
+                    @:await FlowSubmit(entity.Id, flowEngineEntity);
+                @:}
+                @:
+                @://关闭事务
+                @:_db.CommitTran();
+            @:}
+            @:catch (Exception)
+            @:{
+                @://回滚事务
+                @:_db.RollbackTran();
+                @:throw HSZException.Oh(ErrorCode.COM1001);
+            @:}
+}else{
+            @:try
+            @:{
+                @://开启事务
+                @:_db.BeginTran();
+                @:
+                @:await _@(@Model.LowerMainTable)Repository.AsUpdateable(entity).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                @:
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:await _@(@table.LowerTableName)Repository.AsUpdateable(entity@(table.TableNo)).Where(it=> it.@(@table.TableField).Equals(entity.@(@table.RelationField))).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                @:
+}
+@foreach(var table in Model.TableRelations)
+{
+                @://清空原有数据
+                @:await _@(@table.LowerTableName)Repository.AsDeleteable().Where(it => it.@(@table.TableField) == entity.@(@table.RelationField)).ExecuteCommandAsync();
+                @:
+                @://新增新数据
+                @:var @(@table.LowerTableName)EntityList = input.@(@table.LowerTableName)List.Adapt<List<@(@table.TableName)Entity>>();
+                @:if(@(@table.LowerTableName)EntityList != null)
+                @:{
+                    @:foreach (var item in @(@table.LowerTableName)EntityList)
+                    @:{
+                        @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                        @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@if(childer.hszKey == "billRule")
+{
+                        @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                    @:}
+                    @:await _@(@table.LowerTableName)Repository.AsInsertable(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                @:}
+                @:
+}
+                @:if (input.flowState == 0)
+                @:{
+                    @:var flowEngineEntity = await _flowEngineService.GetInfoByEnCode("@(@Model.EnCode)");
+                    @:await FlowSubmit(id, flowEngineEntity);
+                @:}
+                @:
+                @://关闭事务
+                @:_db.CommitTran();
+            @:}
+            @:catch (Exception)
+            @:{
+                @://回滚事务
+                @:_db.RollbackTran();
+                @:throw HSZException.Oh(ErrorCode.COM1001);
+            @:}
+}
+        @:}
+}
+else if(@item.FullName=="remove"){
+@:
+        @:/// <summary>
+        @:/// 删除@(@Model.BusName)
+        @:/// </summary>
+        @:/// <returns></returns>
+        @:[HttpDelete("{id}")]
+        @:public async Task Delete(string id)
+        @:{
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+
+            @:var entity = await _db.Queryable<@(@Model.MainTable)Entity>().FirstAsync(p => p.@(@Model.PrimaryKey).Equals(id));
+            @:_ = entity ?? throw HSZException.Oh(ErrorCode.COM1005);
+
+@if(Model.IsAuxiliaryTable || Model.TableRelations.Count > 0)
+{
+            @:try
+            @:{
+                @://开启事务
+                @:_db.BeginTran();
+                @:
+                @:await _db.Deleteable<@(@Model.MainTable)Entity>().Where(it => it.@(@Model.PrimaryKey) == id).ExecuteCommandAsync();
+                @:
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:await _db.Deleteable<@(@table.TableName)Entity>().Where(it=> it.@(@table.TableField).Equals(entity.@(@table.RelationField))).ExecuteCommandAsync();
+                @:
+}
+@foreach(var table in Model.TableRelations)
+{
+                @:await _db.Deleteable<@(@table.TableName)Entity>().Where(it => it.@(@table.TableField).Equals(entity.@(@table.RelationField))).ExecuteCommandAsync();
+                @:
+}
+                @://关闭事务
+                @:_db.CommitTran();
+            @:}
+            @:catch (Exception)
+            @:{
+                @://回滚事务
+                @:_db.RollbackTran();
+                @:throw HSZException.Oh(ErrorCode.COM1001);
+            @:}
+}
+else
+{
+            @:var isOk = await _db.Deleteable<@(@Model.MainTable)Entity>().Where(d => d.@(@Model.PrimaryKey) == id).ExecuteCommandAsync();
+            @:if (!(isOk > 0)) throw HSZException.Oh(ErrorCode.COM1002);
+}
+
+}
+@*不跨库*@
+else{
+            @:var entity = await _@(@Model.LowerMainTable)Repository.GetFirstAsync(p => p.@(@Model.PrimaryKey).Equals(id));
+            @:_ = entity ?? throw HSZException.Oh(ErrorCode.COM1005);
+
+@if(Model.IsAuxiliaryTable || Model.TableRelations.Count > 0)
+{
+            @:try
+            @:{
+                @://开启事务
+                @:_db.BeginTran();
+                @:
+                @:await _@(@Model.LowerMainTable)Repository.AsDeleteable().Where(it => it.@(@Model.PrimaryKey) == id).ExecuteCommandAsync();
+                @:
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:await _@(@table.LowerTableName)Repository.AsDeleteable().Where(it=> it.@(@table.TableField).Equals(entity.@(@table.RelationField))).ExecuteCommandAsync();
+                @:
+}
+@foreach(var table in Model.TableRelations)
+{
+                @:await _@(@table.LowerTableName)Repository.AsDeleteable().Where(it => it.@(@table.TableField).Equals(entity.@(@table.RelationField))).ExecuteCommandAsync();
+                @:
+}
+                @://关闭事务
+                @:_db.CommitTran();
+            @:}
+            @:catch (Exception)
+            @:{
+                @://回滚事务
+                @:_db.RollbackTran();
+                @:throw HSZException.Oh(ErrorCode.COM1001);
+            @:}
+}
+else
+{
+            @:var isOk = await _@(@Model.LowerMainTable)Repository.AsDeleteable().Where(d => d.@(@Model.PrimaryKey) == id).ExecuteCommandAsync();
+            @:if (!(isOk > 0)) throw HSZException.Oh(ErrorCode.COM1002);
+}
+
+}
+        @:}
+}
+else if(@item.FullName=="page"){
+@:
+        @:/// <summary>
+		@:/// 获取@(@Model.BusName)列表
+		@:/// </summary>
+		@:/// <param name="input">请求参数</param>
+		@:/// <returns></returns>
+@if(@item.IsInterface)
+{
+        @:[HttpGet("")]
+}
+else
+{
+        @:[NonAction]
+}
+        @:public async Task<dynamic> GetList([FromQuery] @(@Model.MainTable)ListQueryInput input)
+        @:{
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+}
+            @:Regex r = new Regex("_");
+            @:var sidx = input.sidx == null ? "@(Model.DefaultSidx)" : r.Replace(input.sidx, ".", 1);
+@if(Model.UseDataPermission)
+{
+            @:var authorizeWhere = new List<IConditionalModel>();
+
+            @://数据权限过滤
+            @:if (_userManager.User.IsAdministrator == 0)
+            @:{
+                @:authorizeWhere = await _userManager.GetConditionAsync<@(@Model.MainTable)ListOutput>("", "@(@Model.PrimaryKeyAlias)");
+            @:}
+}
+@foreach(var table in Model.TableField)
+{
+@if(table.QueryWhether && table.QueryType != 3 && table.IsMultiple)
+{
+@if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:var @(@table.LowerColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToList().Last() :null;
+}
+else if (!table.IsAuxiliary)
+{
+            @:var @(@table.LowerColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+@*副表*@
+else if (table.IsAuxiliary)
+{
+@*防止名称重复添加auxiliary*@
+            @:var auxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+}
+@*非多选的级联*@
+else if (table.QueryWhether && table.hszKey == "cascader" || table.hszKey == "address" || table.hszKey == "comSelect" || table.hszKey == "currOrganize")
+{
+@if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:var @(@table.LowerColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToList().Last() :null;
+}
+else if (!table.IsAuxiliary)
+{
+            @:var @(@table.LowerColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+@*副表*@
+else if (table.IsAuxiliary)
+{
+@*防止名称重复添加auxiliary*@
+            @:var auxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+}
+if(@table.QueryWhether && @table.QueryType == 3){
+switch(@table.hszKey){
+case "time":
+@if(table.IsAuxiliary)
+{
+            @:List<string> queryAuxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:var startAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First() : null;
+            @:var endAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last() : null;
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:List<string> query@(@table.ColumnName) =  input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:var start@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).First() : null;
+            @:var end@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).Last() : null;
+}else
+{
+            @:List<string> query@(@table.ColumnName) =  input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:var start@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).First() : null;
+            @:var end@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).Last() : null;
+}
+break;
+case "numInput":
+case "calculate":
+@if(table.IsAuxiliary)
+{
+            @:List<object> queryAuxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToObject<List<object>>() : null;
+            @:var startAuxiliary@(@table.ColumnName) = input.a@(@table.TableNo)_@(@table.Alias) != null && !string.IsNullOrEmpty(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First().ToString()) ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First() : decimal.MinValue;
+            @:var endAuxiliary@(@table.ColumnName) = input.a@(@table.TableNo)_@(@table.Alias) != null && !string.IsNullOrEmpty(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last().ToString()) ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last() : decimal.MaxValue;
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:List<object> query@(@table.ColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToObject<List<object>>() : null;
+            @:var start@(@table.ColumnName) = input.@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).First().ToString()) ? query@(@table.ColumnName).First() : decimal.MinValue;
+            @:var end@(@table.ColumnName) = input.@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).Last().ToString()) ? query@(@table.ColumnName).Last() : decimal.MaxValue;
+}
+else
+{
+            @:List<object> query@(@table.ColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToObject<List<object>>() : null;
+            @:var start@(@table.ColumnName) = input.a_@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).First().ToString()) ? query@(@table.ColumnName).First() : decimal.MinValue;
+            @:var end@(@table.ColumnName) = input.a_@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).Last().ToString()) ? query@(@table.ColumnName).Last() : decimal.MaxValue;
+}
+break;
+default:
+@if(table.IsAuxiliary)
+{
+            @:List<string> queryAuxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:DateTime? startAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? Ext.GetDateTime(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First()) : null;
+            @:DateTime? endAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? Ext.GetDateTime(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last()) : null;
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:List<string> query@(@table.ColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:DateTime? start@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).First()) : null;
+            @:DateTime? end@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).Last()) : null;
+}
+else
+{
+            @:List<string> query@(@table.ColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:DateTime? start@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).First()) : null;
+            @:DateTime? end@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).Last()) : null;
+}
+break;
+}
+}
+}
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+@if(Model.IsAuxiliaryTable)
+{
+            @:var data = await _db.Queryable<@{GetCodeAAuxiliaryEntity();}>((@{GenCodeAuxiliaryQueryParameters();}) => new JoinQueryInfos(
+@foreach(var auxiliary in Model.AuxiliaryTable){
+@if(auxiliary.TableNo == 1){
+@:JoinType.Left, a@(@auxiliary.TableNo).@(@auxiliary.TableField) == a.@(@auxiliary.RelationField)
+}else{
+@:, JoinType.Left, a@(@auxiliary.TableNo).@(@auxiliary.TableField) == a.@(@auxiliary.RelationField)
+}
+}
+@:))
+}else
+{
+            @:var data = await _db.Queryable<@(@Model.MainTable)Entity>()
+}
+}else{
+@if(Model.IsAuxiliaryTable)
+{
+            @:var data = await _@(@Model.LowerMainTable)Repository.AsSugarClient().Queryable<@{GetCodeAAuxiliaryEntity();}, FlowTaskEntity>((@{GenCodeAuxiliaryQueryParameters();}, b) => new JoinQueryInfos(@{GetAssociativeTable();},JoinType.Left, b.Id == a.Id))
+}else{
+            @:var data = await _@(@Model.LowerMainTable)Repository.AsSugarClient().Queryable<@(@Model.MainTable)Entity, FlowTaskEntity>((a, b) => new JoinQueryInfos(JoinType.Left, b.Id == a.Id))
+}
+}
+@*循环查询条件(主表与副表)*@
+@foreach(var table in Model.TableField)
+{
+@*是否查询条件*@
+@if(table.QueryWhether)
+{
+@*查询方式为等于*@
+@if(table.QueryType == 1){
+@*多选控件*@
+@if(table.IsMultiple)
+{
+@*是否副表*@
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(auxiliary@(@table.ColumnName)@(@table.TableNo)))
+}else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}
+}
+@*非多选的级联与省市区*@
+else if(table.hszKey == "cascader" || table.hszKey == "address" || table.hszKey == "comSelect" || table.hszKey == "currOrganize")
+{
+@*是否副表*@
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(auxiliary@(@table.ColumnName)@(@table.TableNo)))
+}else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}
+}
+@*多选框*@
+else if(table.hszKey == "checkbox")
+{
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(input.a@(@table.TableNo)_@(@table.Alias)))
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.@(@table.Alias)))
+}
+else{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.a_@(@table.Alias)))
+}
+}
+@*其他控件*@
+else
+{
+@if(table.IsAuxiliary){
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Equals(input.a@(@table.TableNo)_@(@table.Alias)))
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Equals(input.@(@table.Alias)))
+}
+else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Equals(input.a_@(@table.Alias)))
+}
+}
+}
+@*查询类型为模糊查询*@
+else if(table.QueryType == 2)
+{
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(input.a@(@table.TableNo)_@(@table.Alias)))
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.@(@table.Alias)))
+}
+else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.a_@(@table.Alias)))
+}
+}
+@*查询类型为范围查询*@
+else if(table.QueryType == 3)
+{
+switch(@table.hszKey)
+{
+case "time":
+case "numInput":
+case "calculate":
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => SqlFunc.Between(a@(@table.TableNo).@(@table.ColumnName), startAuxiliary@(@table.ColumnName), endAuxiliary@(@table.ColumnName)))
+}
+else
+{
+                @:.WhereIF(query@(@table.ColumnName) != null, a => SqlFunc.Between(a.@(@table.ColumnName), start@(@table.ColumnName), end@(@table.ColumnName)))
+}
+break;
+default:
+@if(table.IsAuxiliary){
+@if(table.IsDateTime){
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) >= new DateTime(startAuxiliary@(@table.ColumnName).ToDate().Year, startAuxiliary@(@table.ColumnName).ToDate().Month, startAuxiliary@(@table.ColumnName).ToDate().Day, startAuxiliary@(@table.ColumnName).ToDate().Hour, startAuxiliary@(@table.ColumnName).ToDate().Minute, startAuxiliary@(@table.ColumnName).ToDate().Second))
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) <= new DateTime(endAuxiliary@(@table.ColumnName).ToDate().Year, endAuxiliary@(@table.ColumnName).ToDate().Month, endAuxiliary@(@table.ColumnName).ToDate().Day, endAuxiliary@(@table.ColumnName).ToDate().Hour, endAuxiliary@(@table.ColumnName).ToDate().Minute, endAuxiliary@(@table.ColumnName).ToDate().Second))
+}else{
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) >= new DateTime(startAuxiliary@(@table.ColumnName).ToDate().Year, startAuxiliary@(@table.ColumnName).ToDate().Month, startAuxiliary@(@table.ColumnName).ToDate().Day, 0, 0, 0))
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) <= new DateTime(endAuxiliary@(@table.ColumnName).ToDate().Year, endAuxiliary@(@table.ColumnName).ToDate().Month, endAuxiliary@(@table.ColumnName).ToDate().Day, 23, 59, 59))
+}
+}else{
+@if(table.IsDateTime){
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) >= new DateTime(start@(@table.ColumnName).ToDate().Year, start@(@table.ColumnName).ToDate().Month, start@(@table.ColumnName).ToDate().Day, start@(@table.ColumnName).ToDate().Hour, start@(@table.ColumnName).ToDate().Minute, start@(@table.ColumnName).ToDate().Second))
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) <= new DateTime(end@(@table.ColumnName).ToDate().Year, end@(@table.ColumnName).ToDate().Month, end@(@table.ColumnName).ToDate().Day, end@(@table.ColumnName).ToDate().Hour, end@(@table.ColumnName).ToDate().Minute, end@(@table.ColumnName).ToDate().Second))
+}else{
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) >= new DateTime(start@(@table.ColumnName).ToDate().Year, start@(@table.ColumnName).ToDate().Month, start@(@table.ColumnName).ToDate().Day, 0, 0, 0))
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) <= new DateTime(end@(@table.ColumnName).ToDate().Year, end@(@table.ColumnName).ToDate().Month, end@(@table.ColumnName).ToDate().Day, 23, 59, 59))
+}
+}
+break;
+}
+}
+}
+}
+@if(Model.Type == 5 && Model.SearchList > 0)
+{
+@{var n = 0;}
+                @:.WhereIF(!string.IsNullOrEmpty(input.keyword), (@{GenCodeAuxiliaryQueryParameters();})=>
+@foreach (var table in Model.TableField){
+@if(table.QueryType == 2 || table.QueryType == 1){
+@if(n==0)
+{
+@if(table.IsAuxiliary)
+{
+                    @:a@(@table.TableNo).@(@table.ColumnName).Contains(input.keyword)
+}else{
+                    @:a.@(@table.ColumnName).Contains(input.keyword)
+}
+}
+else
+{
+@if(table.IsAuxiliary)
+{
+                    @:|| a@(@table.TableNo).@(@table.ColumnName).Contains(input.keyword)
+}else{
+                    @:|| a.@(@table.ColumnName).Contains(input.keyword)
+}
+}
+@{n++;}
+}
+}
+                @:)
+}
+@if(Model.UseDataPermission)
+{
+                @:.Where(authorizeWhere)
+}
+                @:.Select((@{GenCodeAuxiliaryQueryParameters();}, b)=> new @(@Model.MainTable)ListOutput
+                @:{
+@foreach (var column in Model.TableField){
+@if(Model.AuxiliaryTable.Count ==0){
+@if (column.PrimaryKey){
+                    @:@(@column.Alias) = a.@column.ColumnName,
+}
+else if(@column.IsShow){
+switch(@column.hszKey)
+{
+case "switch":
+                    @:@(@column.Alias) = SqlFunc.IIF(a.@(@column.ColumnName) == 0, "@(@column.InactiveTxt)", "@(@column.ActiveTxt)"),
+break;
+default:
+                    @:@(@column.Alias) = a.@column.ColumnName,
+break;
+}
+}
+
+}else{
+@if (column.PrimaryKey){
+                    @:a_@(@column.Alias) = a.@column.ColumnName,
+}
+else if(@column.IsShow && !column.IsAuxiliary){
+switch(@column.hszKey)
+{
+case "switch":
+                    @:a_@(@column.Alias) = SqlFunc.IIF(a.@(@column.ColumnName) == 0, "@(@column.InactiveTxt)", "@(@column.ActiveTxt)"),
+break;
+default:
+                    @:a_@(@column.Alias) = a.@column.ColumnName,
+break;
+}
+}
+else if(@column.IsShow && column.IsAuxiliary){
+switch(@column.hszKey)
+{
+case "switch":
+                    @:a@(@column.TableNo)_@(@column.Alias) = SqlFunc.IIF(a@(@column.TableNo).@(@column.ColumnName) == 0, "@(@column.InactiveTxt)", "@(@column.ActiveTxt)"),
+break;
+default:
+                    @:a@(@column.TableNo)_@(@column.Alias) = a@(@column.TableNo).@column.ColumnName,
+break;
+}
+}
+}
+}
+                    @:flowId = b.FlowId,
+                    @:flowState = b.Status
+                @:}).OrderBy(sidx+" "+input.sort).ToPagedListAsync(input.currentPage, input.pageSize);
+                @:return PageResult<@(@Model.MainTable)ListOutput>.SqlSugarPageResult(data);
+        @:}
+}
+else if(@item.FullName=="noPage"){
+@:
+        @:/// <summary>
+		@:/// 获取@(@Model.BusName)无分页列表
+		@:/// </summary>
+		@:/// <param name="input">请求参数</param>
+		@:/// <returns></returns>
+@if(@item.IsInterface)
+{
+        @:[HttpGet("")]
+}
+else
+{
+        @:[NonAction]
+}
+        @:public async Task<dynamic> GetNoPagingList([FromQuery] @(@Model.MainTable)ListQueryInput input)
+        @:{
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+}
+            @:Regex r = new Regex("_");
+            @:var sidx = input.sidx == null ? "@(Model.DefaultSidx)" : r.Replace(input.sidx, ".", 1);
+@if(Model.UseDataPermission)
+{
+            @:var authorizeWhere = new List<IConditionalModel>();
+
+            @://数据权限过滤
+            @:if (_userManager.User.IsAdministrator == 0)
+            @:{
+                @:authorizeWhere = await _userManager.GetConditionAsync<@(@Model.MainTable)ListOutput>("", "@(@Model.PrimaryKeyAlias)");
+            @:}
+}
+@foreach(var table in Model.TableField)
+{
+@if(table.QueryWhether && table.QueryType != 3 && table.IsMultiple)
+{
+@if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:var @(@table.LowerColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToList().Last() :null;
+}
+else if (!table.IsAuxiliary)
+{
+            @:var @(@table.LowerColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+@*副表*@
+else if (table.IsAuxiliary)
+{
+@*防止名称重复添加auxiliary*@
+            @:var auxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+}
+@*非多选的级联*@
+else if (table.QueryWhether && table.hszKey == "cascader" || table.hszKey == "address" || table.hszKey == "comSelect" || table.hszKey == "currOrganize")
+{
+@if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:var @(@table.LowerColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToList().Last() :null;
+}
+else if (!table.IsAuxiliary)
+{
+            @:var @(@table.LowerColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+@*副表*@
+else if (table.IsAuxiliary)
+{
+@*防止名称重复添加auxiliary*@
+            @:var auxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToList().Last() :null;
+}
+}
+if(@table.QueryWhether && @table.QueryType == 3){
+switch(@table.hszKey){
+case "time":
+@if(table.IsAuxiliary)
+{
+            @:List<string> queryAuxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:var startAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First() : null;
+            @:var endAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last() : null;
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:List<string> query@(@table.ColumnName) =  input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:var start@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).First() : null;
+            @:var end@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).Last() : null;
+}else
+{
+            @:List<string> query@(@table.ColumnName) =  input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:var start@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).First() : null;
+            @:var end@(@table.ColumnName) = query@(@table.ColumnName) != null ? query@(@table.ColumnName).Last() : null;
+}
+break;
+case "numInput":
+case "calculate":
+@if(table.IsAuxiliary)
+{
+            @:List<object> queryAuxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToObject<List<object>>() : null;
+            @:var startAuxiliary@(@table.ColumnName) = input.a@(@table.TableNo)_@(@table.Alias) != null && !string.IsNullOrEmpty(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First().ToString()) ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First() : decimal.MinValue;
+            @:var endAuxiliary@(@table.ColumnName) = input.a@(@table.TableNo)_@(@table.Alias) != null && !string.IsNullOrEmpty(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last().ToString()) ? queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last() : decimal.MaxValue;
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:List<object> query@(@table.ColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToObject<List<object>>() : null;
+            @:var start@(@table.ColumnName) = input.@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).First().ToString()) ? query@(@table.ColumnName).First() : decimal.MinValue;
+            @:var end@(@table.ColumnName) = input.@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).Last().ToString()) ? query@(@table.ColumnName).Last() : decimal.MaxValue;
+}
+else
+{
+            @:List<object> query@(@table.ColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToObject<List<object>>() : null;
+            @:var start@(@table.ColumnName) = input.a_@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).First().ToString()) ? query@(@table.ColumnName).First() : decimal.MinValue;
+            @:var end@(@table.ColumnName) = input.a_@(@table.Alias) != null && !string.IsNullOrEmpty(query@(@table.ColumnName).Last().ToString()) ? query@(@table.ColumnName).Last() : decimal.MaxValue;
+}
+break;
+default:
+@if(table.IsAuxiliary)
+{
+            @:List<string> queryAuxiliary@(@table.ColumnName)@(@table.TableNo) = input.a@(@table.TableNo)_@(@table.Alias) != null ? input.a@(@table.TableNo)_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:DateTime? startAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? Ext.GetDateTime(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).First()) : null;
+            @:DateTime? endAuxiliary@(@table.ColumnName) = queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null ? Ext.GetDateTime(queryAuxiliary@(@table.ColumnName)@(@table.TableNo).Last()) : null;
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+            @:List<string> query@(@table.ColumnName) = input.@(@table.Alias) != null ? input.@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:DateTime? start@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).First()) : null;
+            @:DateTime? end@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).Last()) : null;
+}
+else
+{
+            @:List<string> query@(@table.ColumnName) = input.a_@(@table.Alias) != null ? input.a_@(@table.Alias).Split(',').ToObject<List<string>>() : null;
+            @:DateTime? start@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).First()) : null;
+            @:DateTime? end@(@table.ColumnName) = query@(@table.ColumnName) != null ? Ext.GetDateTime(query@(@table.ColumnName).Last()) : null;
+}
+break;
+}
+}
+}
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+@if(Model.IsAuxiliaryTable)
+{
+            @:var data = await _db.Queryable<@{GetCodeAAuxiliaryEntity();}>((@{GenCodeAuxiliaryQueryParameters();}) => new JoinQueryInfos(@{GetAssociativeTable();}))
+}else
+{
+            @:var data = await _db.Queryable<@(@Model.MainTable)Entity>()
+}
+}else{
+@if(Model.IsAuxiliaryTable)
+{
+            @:var data = await _@(@Model.LowerMainTable)Repository.AsSugarClient().Queryable<@{GetCodeAAuxiliaryEntity();}, FlowTaskEntity>((@{GenCodeAuxiliaryQueryParameters();}, b) => new JoinQueryInfos(@{GetAssociativeTable();}, JoinType.Left, b.Id == a.Id))
+}else{
+            @:var data = await _@(@Model.LowerMainTable)Repository.AsSugarClient().Queryable<@(@Model.MainTable)Entity, FlowTaskEntity>((a, b) => new JoinQueryInfos(JoinType.Left, b.Id == a.Id))
+}
+}
+@*循环查询条件(主表与副表)*@
+@foreach(var table in Model.TableField)
+{
+@*是否查询条件*@
+@if(table.QueryWhether)
+{
+@*查询方式为等于*@
+@if(table.QueryType == 1){
+@*多选控件*@
+@if(table.IsMultiple)
+{
+@*是否副表*@
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(auxiliary@(@table.ColumnName)@(@table.TableNo)))
+}else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}
+}
+@*非多选的级联与省市区*@
+else if(table.hszKey == "cascader" || table.hszKey == "address" || table.hszKey == "comSelect" || table.hszKey == "currOrganize")
+{
+@*是否副表*@
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(auxiliary@(@table.ColumnName)@(@table.TableNo)))
+}else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(@(@table.LowerColumnName)))
+}
+}
+@*多选框*@
+else if(table.hszKey == "checkbox")
+{
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(input.a@(@table.TableNo)_@(@table.Alias)))
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.@(@table.Alias)))
+}
+else{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.a_@(@table.Alias)))
+}
+}
+@*其他控件*@
+else
+{
+@if(table.IsAuxiliary){
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Equals(input.a@(@table.TableNo)_@(@table.Alias)))
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Equals(input.@(@table.Alias)))
+}
+else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Equals(input.a_@(@table.Alias)))
+}
+}
+}
+@*查询类型为模糊查询*@
+else if(table.QueryType == 2)
+{
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a@(@table.TableNo)_@(@table.Alias)), (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName).Contains(input.a@(@table.TableNo)_@(@table.Alias)))
+}
+else if(!table.IsAuxiliary && Model.WebType != 3)
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.@(@table.Alias)))
+}
+else
+{
+                @:.WhereIF(!string.IsNullOrEmpty(input.a_@(@table.Alias)), a => a.@(@table.ColumnName).Contains(input.a_@(@table.Alias)))
+}
+}
+@*查询类型为范围查询*@
+else if(table.QueryType == 3)
+{
+switch(@table.hszKey)
+{
+case "time":
+case "numInput":
+case "calculate":
+@if(table.IsAuxiliary)
+{
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => SqlFunc.Between(a@(@table.TableNo).@(@table.ColumnName), startAuxiliary@(@table.ColumnName), endAuxiliary@(@table.ColumnName)))
+}
+else
+{
+                @:.WhereIF(query@(@table.ColumnName) != null, a => SqlFunc.Between(a.@(@table.ColumnName), start@(@table.ColumnName), end@(@table.ColumnName)))
+}
+break;
+default:
+@if(table.IsAuxiliary){
+@if(table.IsDateTime){
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) >= new DateTime(startAuxiliary@(@table.ColumnName).ToDate().Year, startAuxiliary@(@table.ColumnName).ToDate().Month, startAuxiliary@(@table.ColumnName).ToDate().Day, startAuxiliary@(@table.ColumnName).ToDate().Hour, startAuxiliary@(@table.ColumnName).ToDate().Minute, startAuxiliary@(@table.ColumnName).ToDate().Second))
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) <= new DateTime(endAuxiliary@(@table.ColumnName).ToDate().Year, endAuxiliary@(@table.ColumnName).ToDate().Month, endAuxiliary@(@table.ColumnName).ToDate().Day, endAuxiliary@(@table.ColumnName).ToDate().Hour, endAuxiliary@(@table.ColumnName).ToDate().Minute, endAuxiliary@(@table.ColumnName).ToDate().Second))
+}else{
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) >= new DateTime(startAuxiliary@(@table.ColumnName).ToDate().Year, startAuxiliary@(@table.ColumnName).ToDate().Month, startAuxiliary@(@table.ColumnName).ToDate().Day, 0, 0, 0))
+                @:.WhereIF(queryAuxiliary@(@table.ColumnName)@(@table.TableNo) != null, (@{GenCodeAuxiliaryQueryParameters();}) => a@(@table.TableNo).@(@table.ColumnName) <= new DateTime(endAuxiliary@(@table.ColumnName).ToDate().Year, endAuxiliary@(@table.ColumnName).ToDate().Month, endAuxiliary@(@table.ColumnName).ToDate().Day, 23, 59, 59))
+}
+}else{
+@if(table.IsDateTime){
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) >= new DateTime(start@(@table.ColumnName).ToDate().Year, start@(@table.ColumnName).ToDate().Month, start@(@table.ColumnName).ToDate().Day, start@(@table.ColumnName).ToDate().Hour, start@(@table.ColumnName).ToDate().Minute, start@(@table.ColumnName).ToDate().Second))
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) <= new DateTime(end@(@table.ColumnName).ToDate().Year, end@(@table.ColumnName).ToDate().Month, end@(@table.ColumnName).ToDate().Day, end@(@table.ColumnName).ToDate().Hour, end@(@table.ColumnName).ToDate().Minute, end@(@table.ColumnName).ToDate().Second))
+}else{
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) >= new DateTime(start@(@table.ColumnName).ToDate().Year, start@(@table.ColumnName).ToDate().Month, start@(@table.ColumnName).ToDate().Day, 0, 0, 0))
+                @:.WhereIF(query@(@table.ColumnName) != null, a => a.@(@table.ColumnName) <= new DateTime(end@(@table.ColumnName).ToDate().Year, end@(@table.ColumnName).ToDate().Month, end@(@table.ColumnName).ToDate().Day, 23, 59, 59))
+}
+}
+break;
+}
+}
+}
+}
+@if(Model.Type == 5 && Model.SearchList > 0)
+{
+@{var n = 0;}
+                @:.WhereIF(!string.IsNullOrEmpty(input.keyword), (@{GenCodeAuxiliaryQueryParameters();})=>
+@foreach (var table in Model.TableField){
+@if(table.QueryType == 2 || table.QueryType == 1){
+@if(n==0)
+{
+@if(table.IsAuxiliary)
+{
+                    @:a@(@table.TableNo).@(@table.ColumnName).Contains(input.keyword)
+}else{
+                    @:a.@(@table.ColumnName).Contains(input.keyword)
+}
+}
+else
+{
+@if(table.IsAuxiliary)
+{
+                    @:|| a@(@table.TableNo).@(@table.ColumnName).Contains(input.keyword)
+}else{
+                    @:|| a.@(@table.ColumnName).Contains(input.keyword)
+}
+}
+@{n++;}
+}
+}
+                @:)
+}
+@if(Model.UseDataPermission)
+{
+                @:.Where(authorizeWhere)
+}
+                @:.Select((@{GenCodeAuxiliaryQueryParameters();}, b)=> new @(@Model.MainTable)ListOutput
+                @:{
+@foreach (var column in Model.TableField){
+@if(Model.AuxiliaryTable.Count ==0){
+@if (column.PrimaryKey){
+                    @:@(@column.Alias) = a.@column.ColumnName,
+}
+else if(@column.IsShow){
+switch(@column.hszKey)
+{
+case "switch":
+                    @:@(@column.Alias) = SqlFunc.IIF(a.@(@column.ColumnName) == 0, "@(@column.InactiveTxt)", "@(@column.ActiveTxt)"),
+break;
+default:
+                    @:@(@column.Alias) = a.@column.ColumnName,
+break;
+}
+}
+
+}else{
+@if (column.PrimaryKey){
+                    @:a_@(@column.Alias) = a.@column.ColumnName,
+}
+else if(@column.IsShow && !column.IsAuxiliary){
+switch(@column.hszKey)
+{
+case "switch":
+                    @:a_@(@column.Alias) = SqlFunc.IIF(a.@(@column.ColumnName) == 0, "@(@column.InactiveTxt)", "@(@column.ActiveTxt)"),
+break;
+default:
+                    @:a_@(@column.Alias) = a.@column.ColumnName,
+break;
+}
+}
+else if(@column.IsShow && column.IsAuxiliary){
+switch(@column.hszKey)
+{
+case "switch":
+                    @:a@(@column.TableNo)_@(@column.Alias) = SqlFunc.IIF(a@(@column.TableNo).@(@column.ColumnName) == 0, "@(@column.InactiveTxt)", "@(@column.ActiveTxt)"),
+break;
+default:
+                    @:a@(@column.TableNo)_@(@column.Alias) = a@(@column.TableNo).@column.ColumnName,
+break;
+}
+}
+}
+}
+                    @:flowId = b.FlowId,
+                    @:flowState = b.Status
+                @:}).OrderBy(sidx+" "+input.sort).ToListAsync();
+                @:return data;
+        @:}
+}
+else if(@item.FullName=="download"){
+@:
+        @:/// <summary>
+		@:/// 导出@(@Model.BusName)
+		@:/// </summary>
+		@:/// <param name="input">请求参数</param>
+		@:/// <returns></returns>
+        @:[HttpGet("Actions/Export")]
+        @:public async Task<dynamic> Export([FromQuery] @(@Model.MainTable)ListQueryInput input)
+        @:{
+            @:var userInfo = await _userManager.GetUserInfo();
+            @:var exportData = new List<@(@Model.MainTable)ListOutput>();
+            @:if (input.dataType == 0)
+            @:{
+                @:var data = Clay.Object(await this.GetList(input));
+                @:exportData = data.Solidify<PageResult<@(@Model.MainTable)ListOutput>>().list;
+            @:}
+            @:else
+            @:{
+                @:exportData = await this.GetNoPagingList(input);
+            @:}
+            @:List<ParamsModel> paramList = "[@(@Model.ColumnField)]".ToList<ParamsModel>();
+            @:ExcelConfig excelconfig = new ExcelConfig();
+            @:excelconfig.FileName = "@(@Model.BusName).xls";
+            @:excelconfig.HeadFont = "微软雅黑";
+            @:excelconfig.HeadPoint = 10;
+            @:excelconfig.IsAllSizeColumn = true;
+            @:excelconfig.ColumnModel = new List<ExcelColumnModel>();
+            @:List<string> selectKeyList = input.selectKey.Split(',').ToList();
+            @:foreach (var item in selectKeyList)
+            @:{
+                @:var isExist = paramList.Find(p => p.field == item);
+                @:if (isExist != null)
+                @:{
+                    @:excelconfig.ColumnModel.Add(new ExcelColumnModel() { Column = isExist.field, ExcelColumn = isExist.value });
+                @:}
+            @:}
+            @:var addPath = FileVariable.TemporaryFilePath + excelconfig.FileName;
+            @:ExcelExportHelper<@(@Model.MainTable)ListOutput>.Export(exportData, excelconfig, addPath);
+            @:var fileName = _userManager.UserId + "|" + addPath + "|xls";
+            @:var output = new
+            @:{
+                @:name = excelconfig.FileName,
+                @:url = "/api/File/Download?encryption=" + DESCEncryption.Encrypt(fileName, "HSZ")
+            @:};
+            @:return output;
+        @:}
+}
+else if(@item.FullName == "batchRemove"){
+@:
+        @:/// <summary>
+        @:/// 批量删除@(@Model.BusName)
+        @:/// </summary>
+        @:/// <param name="ids">主键数组</param>
+        @:/// <returns></returns>
+        @:[HttpPost("batchRemove")]
+        @:public async Task BatchRemove([FromBody] List<string> ids)
+        @:{
+            @:var entitys = _flowTaskRepository.GetAllowDeleteFlowTaskList(ids);
+            @:ids = ids.Except(entitys).ToList();
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _dataBaseService.ToDbType(dbLink.DbType),
+                @:ConnectionString = _dataBaseService.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+}
+            @:if (ids.Count > 0)
+            @:{
+                @:try
+                @:{
+                    @://开启事务
+                    @:_db.BeginTran();
+
+                    @://批量删除@(@Model.BusName)
+@if(Model.DbLinkId != "0")
+{
+                    @:await _db.Deleteable<@(@Model.MainTable)Entity>().In(d => d.@(@Model.PrimaryKey),ids).ExecuteCommandAsync();
+}
+else
+{
+                    @:await _@(@Model.LowerMainTable)Repository.AsDeleteable().In(d => d.@(@Model.PrimaryKey),ids).ExecuteCommandAsync();
+}
+@if(Model.IsAuxiliaryTable)
+{
+@:
+                    @://请空副表数据
+@if(Model.DbLinkId != "0")
+{
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:await _db.Deleteable<@(@table.TableName)Entity>().In(it => it.@(@table.TableField), ids).ExecuteCommandAsync();
+}
+}
+else
+{
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:await  _@(@table.LowerTableName)Repository.AsDeleteable().In(it => it.@(@table.TableField), ids).ExecuteCommandAsync();
+}
+}
+}
+@foreach(var table in Model.TableRelations){
+@:
+                    @://清空子表数据
+@if(Model.DbLinkId != "0")
+{
+                    @:await _db.Deleteable<@(@table.TableName)Entity>().In(u => u.@(@table.TableField), ids).ExecuteCommandAsync();
+}
+else
+{
+                    @:await _@(@table.LowerTableName)Repository.AsDeleteable().In(u => u.@(@table.TableField), ids).ExecuteCommandAsync();
+}
+}
+                    @://关闭事务
+                    @:_db.CommitTran();
+                @:}
+                @:catch (Exception)
+                @:{
+                    @://回滚事务
+                    @:_db.RollbackTran();
+                    @:throw HSZException.Oh(ErrorCode.COM1002);
+                @:}
+            @:}
+        @:}
+}
+}
+        /// <summary>
+        /// 提交审核
+        /// </summary>
+        /// <param name="id">主键值</param>
+        /// <param name="flowEngineEntity">流程信息</param>
+        /// <returns></returns>
+        private async Task FlowSubmit(string id, FlowEngineEntity flowEngineEntity)
+        {
+            var @(@Model.LowerMainTable)Entity = await _@(@Model.LowerMainTable)Repository.GetFirstAsync(x => x.Id == id);
+            try
+            {
+                _db.BeginTran();
+
+                #region 业务信息
+
+@foreach(var column in Model.TableField){
+if(@column.hszKey == "modifyTime"){
+                @:@(@Model.LowerMainTable)Entity.@column.LowerColumnName = DateTime.Now;
+}
+else if(@column.hszKey == "modifyUser"){
+                @:@(@Model.LowerMainTable)Entity.@column.LowerColumnName = _userManager.UserId;
+}
+}
+                await _@(@Model.LowerMainTable)Repository.UpdateAsync(@(@Model.LowerMainTable)Entity);
+
+                #endregion
+
+                #region 流程信息
+                var flowTaskEntity = await _flowTaskRepository.GetTaskInfo(id);
+                if (flowTaskEntity.IsNullOrEmpty())
+                {
+                    await _flowTaskService.Submit("", flowEngineEntity.Id, id, _userManager.User.RealName + "的" + flowEngineEntity.FullName, 1, null, @(@Model.LowerMainTable)Entity.Adapt<@(@Model.MainTable)CrInput>(), 0);
+                }
+                else
+                {
+                    await _flowTaskService.Submit(id, flowEngineEntity.Id, id, _userManager.User.RealName + "的"  + flowEngineEntity.FullName, 1, null, @(@Model.LowerMainTable)Entity.Adapt<@(@Model.MainTable)CrInput>(), 0);
+                }
+                #endregion
+
+                _db.CommitTran();
+            }
+            catch (Exception)
+            {
+                _db.RollbackTran();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 撤回审核
+        /// </summary>
+        /// <param name="flowTaskEntity">流程任务</param>
+        /// <param name="flowHandleModel">流程经办</param>
+        private async Task FlowRevoke(FlowTaskEntity flowTaskEntity, string flowHandleModel)
+        {
+            var @(@Model.LowerMainTable)Entity = await _@(@Model.LowerMainTable)Repository.GetFirstAsync(x => x.Id == flowTaskEntity.ProcessId);
+            try
+            {
+                _db.BeginTran();
+
+                #region 业务信息
+@foreach(var column in Model.TableField){
+if(@column.hszKey == "modifyTime"){
+                @:@(@Model.LowerMainTable)Entity.@column.ColumnName = DateTime.Now;
+}
+else if(@column.hszKey == "modifyUser"){
+                @:@(@Model.LowerMainTable)Entity.@column.ColumnName = _userManager.UserId;
+}
+}
+                await _@(@Model.LowerMainTable)Repository.UpdateAsync(@(@Model.LowerMainTable)Entity);
+                #endregion
+
+                #region 流程信息
+                var flowTaskNodeEntityList = await _flowTaskRepository.GetTaskNodeList(flowTaskEntity.Id);
+                var flowTaskNodeEntity = flowTaskNodeEntityList.Find(m => m.SortCode == 2);
+                if (flowTaskNodeEntity.Completion > 0)
+                {
+                    throw new Exception("当前流程被处理，无法撤回流程");
+                }
+                else
+                {
+                    await _flowTaskService.Revoke(flowTaskEntity, flowHandleModel);
+                }
+                #endregion
+
+                _db.CommitTran();
+            }
+            catch (Exception)
+            {
+                _db.RollbackTran();
+                throw;
+            }
+        }
+    }
+}
+@{
+    @*获取多表联表查询(a,a1,a2...aN)*@
+    void GenCodeAuxiliaryQueryParameters(){
+@:a
+@foreach(var auxiliary in Model.AuxiliaryTable)
+{
+@(", a" + auxiliary.TableNo)
+}
+    }
+}
+
+
+
+@{
+    @*获取多表联表实体(T,T1,T2...Tn)*@
+    void GetCodeAAuxiliaryEntity(){
+@:@(@Model.MainTable)Entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+@:, @(@table.TableName)Entity
+}
+    }
+}
+
+@{
+    @*获取关联表关系*@
+    void GetAssociativeTable(){
+@foreach(var auxiliary in Model.AuxiliaryTable){
+@if(auxiliary.TableNo == 1){
+@:JoinType.Left, a@(@auxiliary.TableNo).@(@auxiliary.TableField) == a.@(@auxiliary.RelationField)
+}else{
+@:, JoinType.Left, a@(@auxiliary.TableNo).@(@auxiliary.TableField) == a.@(@auxiliary.RelationField)
+}
+}
+    }
+}
+@{
+    @*获取info输出参数*@
+    void GetEntityInfoOutput(){
+@foreach(var column in Model.TableField)
+{
+@if(column.PrimaryKey)
+{
+        @:@(@column.LowerColumnName) = a.@(@column.ColumnName),
+}
+else if(column.hszKey != null && !column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:@(@column.LowerColumnName)List = a.@(@column.ColumnName),
+}
+else
+{
+        @:@(@column.LowerColumnName) = a.@(@column.ColumnName),
+}
+break;
+case "checkbox":
+case "cascader":
+case "address":
+case "comSelect":
+case "uploadImg":
+case "uploadFz":
+        @:@(@column.LowerColumnName)List = a.@(@column.ColumnName),
+break;
+default:
+        @:@(@column.LowerColumnName) = a.@(@column.ColumnName),
+break;
+}
+}
+else if(column.hszKey != null && column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List = a@(@column.TableNo).@(@column.ColumnName),
+}
+else
+{
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = a@(@column.TableNo).@(@column.ColumnName),
+}
+break;
+case "checkbox":
+case "cascader":
+case "address":
+case "comSelect":
+case "uploadImg":
+case "uploadFz":
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List = a@(@column.TableNo).@(@column.ColumnName),
+break;
+default:
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = a@(@column.TableNo).@(@column.ColumnName),
+break;
+}
+}
+}
+    }
+}
+@{
+    void GetMapprtInfoOutput(){
+@foreach(var column in Model.TableField)
+{
+if(column.hszKey != null && !column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:output.@(@column.LowerColumnName) =  output.@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "cascader":
+case "comSelect":
+case "address":
+@if(column.IsMultiple)
+{
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<List<string>>();
+}
+else{
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "checkbox":
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<string>();
+break;
+case "uploadImg":
+case "uploadFz":
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<FileControlsModel>();
+break;
+}
+}
+else if(column.hszKey != null && column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "cascader":
+case "address":
+case "comSelect":
+@if(column.IsMultiple)
+{
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<List<string>>();
+}
+else{
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "checkbox":
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<string>();
+break;
+case "uploadImg":
+case "uploadFz":
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<FileControlsModel>();
+break;
+}
+}
+}
+    }
+}

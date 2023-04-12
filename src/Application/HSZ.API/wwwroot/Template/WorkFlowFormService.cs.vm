@@ -1,0 +1,918 @@
+﻿using HSZ.Common.Core.Manager;
+using HSZ.Common.Enum;
+using HSZ.Dependency;
+using HSZ.DynamicApiController;
+using HSZ.FriendlyException;
+using HSZ.JsonSerialization;
+@if(Model.IsBillRule)
+{
+@:using HSZ.System.Interfaces.System;
+}
+@if(Model.DbLinkId != "0")
+{
+@:using HSZ.ChangeDataBase;
+@:using HSZ.System.Entitys.System;
+}
+@if(Model.IsUplpad){
+@:using HSZ.Common.Model;
+}
+using HSZ.Entitys.WorkFlowForm;
+using HSZ.WorkFlow.Interfaces.FlowTask;
+using HSZ.@(@Model.NameSpace).Entitys;
+using HSZ.@(@Model.NameSpace).Entitys.Dto.@Model.ClassName;
+using HSZ.@(@Model.NameSpace).Interfaces.@Model.ClassName;
+using Mapster;
+using Microsoft.AspNetCore.Mvc;
+using SqlSugar;
+using SqlSugar.IOC;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Yitter.IdGenerator;
+
+namespace HSZ.@(@Model.NameSpace).@Model.ClassName
+{
+    /// <summary>
+    /// @(@Model.BusName)服务
+    /// </summary>
+    [ApiDescriptionSettings(Tag = "@(@Model.NameSpace)",Name = "@Model.ClassName", Order = 200)]
+    [Route("api/@(@Model.NameSpace)/[controller]")]
+    public class @(@Model.ClassName)Service : I@(@Model.ClassName)Service, IDynamicApiController, ITransient
+    {
+        private readonly ISqlSugarRepository<@(@Model.MainTable)Entity> _@(@Model.LowerMainTable)Repository;
+@foreach(var item in Model.AuxiliaryTable)
+{
+        @:private readonly ISqlSugarRepository<@(@item.TableName)Entity> _@(@item.LowerTableName)Repository;
+}
+@foreach (var item in Model.TableRelations)
+{
+        @:private readonly ISqlSugarRepository<@(@item.TableName)Entity> _@(@item.LowerTableName)Repository;
+}
+@if(Model.IsBillRule)
+{
+        @:private readonly IBillRullService _billRullService;
+}
+@if(Model.DbLinkId != "0"){
+        @:private readonly IDbLinkService _dbLinkService;
+        @:private readonly IDataBaseService _dataBaseService;
+}
+        private readonly SqlSugarScope _db;
+        private readonly IUserManager _userManager;
+        private readonly IFlowTaskService _flowTaskService;
+
+        /// <summary>
+        /// 初始化一个<see cref="@(@Model.ClassName)Service"/>类型的新实例
+        /// </summary>
+        public @(@Model.ClassName)Service(
+            ISqlSugarRepository<@(@Model.MainTable)Entity> @(@Model.LowerMainTable)Repository,
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:ISqlSugarRepository<@(@table.TableName)Entity> @(@table.LowerTableName)Repository,
+}
+@foreach(var table in Model.TableRelations){
+            @:ISqlSugarRepository<@(@table.TableName)Entity> @(@table.LowerTableName)Repository,
+}
+@if(Model.IsBillRule)
+{
+            @:IBillRullService billRullService,
+}
+@if(Model.DbLinkId != "0")
+{
+            @:IDbLinkService dbLinkService,
+            @:IDataBaseService dataBaseService,
+}
+            IUserManager userManager, 
+            IFlowTaskService flowTaskService)
+        {
+            _@(@Model.LowerMainTable)Repository = @(@Model.LowerMainTable)Repository;
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:_@(@table.LowerTableName)Repository = @(@table.LowerTableName)Repository;
+}
+@foreach(var table in Model.TableRelations)
+{
+            @:_@(@table.LowerTableName)Repository = @(@table.LowerTableName)Repository;
+}
+@if(Model.IsBillRule)
+{
+            @:_billRullService = billRullService;
+}
+@if(Model.DbLinkId != "0")
+{
+            @:_dbLinkService = dbLinkService;
+            @:_dataBaseService = dataBaseService;
+}
+            _flowTaskService = flowTaskService;
+            _userManager = userManager;
+            //只能作为事务处理
+            _db =  DbScoped.SugarScope;
+        }
+@*循环功能*@
+@foreach(var item in Model.Function)
+{
+@switch(item.FullName)
+{
+case "info":
+@:
+        @:/// <summary>
+        @:/// 获取@(@Model.BusName)
+        @:/// </summary>
+        @:/// <param name="id">参数</param>
+        @:/// <returns></returns>
+        @:[HttpGet("{id}")]
+        @:public async Task<dynamic> GetInfo(string id)
+        @:{
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+
+@*是否存在副表*@
+@if(Model.IsAuxiliaryTable)
+{
+            @:var output = (await _db.Queryable<@{GetCodeAAuxiliaryEntity();}>((@{GenCodeAuxiliaryQueryParameters();}) => new JoinQueryInfos(@{GetAssociativeTable();}))
+                @:.Where(a => a.@(@Model.PrimaryKey) == id)
+                @:.Select((@{GenCodeAuxiliaryQueryParameters();}) => new @(@Model.MainTable)InfoOutput
+                @:{
+                    @{GetEntityInfoOutput();}
+                @:}).Mapper((output) =>
+                @:{
+                    @{GetMapprtInfoOutput();}
+                @:}).ToListAsync()).FirstOrDefault();
+}else{
+            @:var output = (await _db.Queryable<@(@Model.MainTable)Entity>().FirstAsync(p => p.@(@Model.PrimaryKey) == id)).Adapt<@(@Model.MainTable)InfoOutput>();
+}
+
+}
+else
+{
+
+@if(Model.IsAuxiliaryTable)
+{
+            @:var output = (await _@(@Model.LowerMainTable)Repository.AsSugarClient().Queryable<@{GetCodeAAuxiliaryEntity();}>((@{GenCodeAuxiliaryQueryParameters();}) => new JoinQueryInfos(@{GetAssociativeTable();}))
+                @:.Where(a => a.@(@Model.PrimaryKey) == id)
+                @:.Select((@{GenCodeAuxiliaryQueryParameters();}) => new @(@Model.MainTable)InfoOutput
+                @:{
+                    @{GetEntityInfoOutput();}
+                @:}).Mapper((output) =>
+                @:{
+                    @{GetMapprtInfoOutput();}
+                @:}).ToListAsync()).FirstOrDefault();
+}else{
+            @:var output = (await _@(@Model.LowerMainTable)Repository.GetFirstAsync(p => p.@(@Model.PrimaryKey) == id)).Adapt<@(@Model.MainTable)InfoOutput>();
+}
+
+}
+@*子表循环*@
+@foreach (var table in Model.TableRelations)
+{
+            @:
+
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+            @:var @(@table.LowerTableName)List = await _db.Queryable<@(@table.TableName)Entity>().Where(w => w.@(@table.TableField) == output.@(@table.LowerRelationField)).ToListAsync();
+}else{
+            @:var @(@table.LowerTableName)List = await _@(@table.LowerTableName)Repository.GetListAsync(w => w.@(@table.TableField) == output.@(@table.LowerRelationField));
+}
+
+            @:output.@(@table.LowerTableName)List = @(@table.LowerTableName)List.Adapt<List<@(@table.TableName)InfoOutput>>();
+}
+            @:
+            @:return output;
+        @:}
+break;
+case "add":
+@:
+        @:/// <summary>
+        @:/// 保存@(@Model.BusName)
+        @:/// </summary>
+        @:/// <param name="input">参数</param>
+        @:/// <returns></returns>
+        @:[HttpPost("")]
+        @:public async Task Save([FromBody] @(@Model.MainTable)CrInput input)
+        @:{
+            @:var userInfo = await _userManager.GetUserInfo();
+            @:var entity = input.Adapt<@(@Model.MainTable)Entity>();
+@*存在副表*@
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:
+            @:var entity@(@table.TableNo) = input.Adapt<@(@table.TableName)Entity>();
+}
+@*存在子表*@
+@foreach(var table in Model.TableRelations){
+            @:
+            @:var @(@table.LowerTableName)EntityList = input.@(@table.LowerTableName)List.Adapt<List<@(@table.TableName)Entity>>();
+}
+            @:if (input.flowState == 0)
+            @:{
+                @:await Submit(entity.@(@Model.PrimaryKey), entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:, entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+                @:, @(@table.LowerTableName)EntityList
+}
+                @:);
+            @:}else{
+                @:await Save(entity.@(@Model.PrimaryKey), entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:, entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+                @:, @(@table.LowerTableName)EntityList
+}
+                @:);
+            @:}
+        @:}
+break;
+case "edit":
+@:
+        @:/// <summary>
+        @:/// 提交@(@Model.BusName)
+        @:/// </summary>
+        @:/// <param name="id">主键</param>
+        @:/// <param name="input">参数</param>
+        @:/// <returns></returns>
+        @:[HttpPut("{id}")]
+        @:public async Task Submit(string id, [FromBody] @(@Model.MainTable)UpInput input)
+        @:{
+            @:var entity = input.Adapt<@(@Model.MainTable)Entity>();
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:
+            @:var entity@(@table.TableNo) = input.Adapt<@(@table.TableName)Entity>();
+}
+@foreach(var table in Model.TableRelations)
+{
+            @:
+            @:var @(@table.LowerTableName)EntityList = input.@(@table.LowerTableName)List.Adapt<List<@(@table.TableName)Entity>>();
+}
+            @:if(input.flowState == 1)
+            @:{
+                @:await Save(entity.@(@Model.PrimaryKey), entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:, entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+                @:, @(@table.LowerTableName)EntityList
+}
+                    @:);
+            @:}
+            @:else
+            @:{
+                @:await Submit(entity.@(@Model.PrimaryKey), entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:, entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+                @:, @(@table.LowerTableName)EntityList
+}
+                    @:);
+            @:}
+        @:}
+break;
+}
+}
+        #region PrivateMethod
+
+        /// <summary>
+        /// 保存
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="entity"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        private async Task Save(string id, @(@Model.MainTable)Entity entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:, @(@table.TableName)Entity entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+            @:, List<@(@table.TableName)Entity> @(@table.LowerTableName)EntityList
+}
+            , int type = 0)
+        {
+            try
+            {
+                _db.BeginTran();
+
+                #region 表单信息
+
+                await HandleForm(id, entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:, entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+                    @:, @(@table.LowerTableName)EntityList
+}
+                    );
+
+                #endregion
+
+                #region 流程信息
+
+                await _flowTaskService.Save(id, entity.@(@Model.DefaultFlowId), entity.@(@Model.PrimaryKey), _userManager.User.RealName + "的@(@Model.BusName)", 1, null, null, 1, type, true);
+
+                #endregion
+
+                _db.CommitTran();
+            }
+            catch (Exception)
+            {
+                _db.RollbackTran();
+                throw HSZException.Oh(ErrorCode.WF0021);
+            }
+        }
+
+        /// <summary>
+        /// 提交
+        /// </summary>
+        /// <param name="id">主键值</param>
+        /// <param name="entity">实体对象</param>
+        private async Task Submit(string id, @(@Model.MainTable)Entity entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:, @(@table.TableName)Entity entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+            @:, List<@(@table.TableName)Entity> @(@table.LowerTableName)EntityList
+}
+            )
+        {
+            try
+            {
+                _db.BeginTran();
+
+                #region 表单信息
+
+                await HandleForm(id, entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:, entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+                    @:, @(@table.LowerTableName)EntityList
+}
+                    );
+
+                #endregion
+
+                #region 流程信息
+
+                await _flowTaskService.Submit(id, entity.@(@Model.DefaultFlowId), entity.@(@Model.PrimaryKey), _userManager.User.RealName + "的@(@Model.BusName)", 1, null, entity.Adapt<@(@Model.MainTable)CrInput>(), 0, 0, true);
+
+                #endregion
+
+                _db.CommitTran();
+            }
+            catch (Exception)
+            {
+                _db.RollbackTran();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 表单操作
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="entity"></param>
+        /// <returns></returns>
+        private async Task HandleForm(string id, @(@Model.MainTable)Entity entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+            @:, @(@table.TableName)Entity entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+            @:, List<@(@table.TableName)Entity> @(@table.LowerTableName)EntityList
+}
+            )
+        {
+            var userInfo = await _userManager.GetUserInfo();
+            if (string.IsNullOrEmpty(id))
+            {
+                entity.@(@Model.PrimaryKey) = YitIdHelper.NextId().ToString();
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:
+                @:entity@(@table.TableNo).@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+}
+@foreach(var column in Model.TableField)
+{
+
+@if(column.hszKey == "createTime" && column.IsAuxiliary)
+{
+                @:entity@(column.TableNo).@column.ColumnName = DateTime.Now;
+}else if(column.hszKey == "createTime" && column.IsAuxiliary){
+                @:entity@(column.TableNo).@column.ColumnName = DateTime.Now;  
+}else if(column.hszKey == "createUser" && column.IsAuxiliary){
+                @:entity@(column.TableNo).@column.ColumnName = _userManager.UserId;
+}else if(column.hszKey == "currPosition" && column.IsAuxiliary){
+                @:entity@(column.TableNo).@column.ColumnName = userInfo.positionIds.FirstOrDefault() != null ? userInfo.positionIds.FirstOrDefault().id : null;
+}else if(column.hszKey == "currOrganize" && column.IsAuxiliary){
+                @:entity@(column.TableNo).@column.ColumnName = userInfo.organizeId;
+}else if(column.hszKey == "billRule" && column.IsAuxiliary){
+                @:entity@(column.TableNo).@(@column.ColumnName) = await _billRullService.GetBillNumber("@(@column.Rule)");
+}else if(column.hszKey == "createTime" && !column.IsAuxiliary){
+                @:entity.@column.ColumnName = DateTime.Now;  
+}else if(column.hszKey == "createUser" && !column.IsAuxiliary){
+                @:entity.@column.ColumnName = _userManager.UserId;
+}else if(column.hszKey == "currPosition" && !column.IsAuxiliary){
+                @:entity.@column.ColumnName = userInfo.positionIds.FirstOrDefault() != null ? userInfo.positionIds.FirstOrDefault().id : null;
+}else if(column.hszKey == "currOrganize" && !column.IsAuxiliary){
+                @:entity.@column.ColumnName = userInfo.organizeId;
+}else if(column.hszKey == "billRule" && !column.IsAuxiliary){
+                @:entity.@(@column.ColumnName) = await _billRullService.GetBillNumber("@(@column.Rule)");
+}
+
+}
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+                @:var dbLink = await await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+                @:_db.AddConnection(new ConnectionConfig()
+                @:{
+                    @:ConfigId = dbLink.Id,
+                    @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                    @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                    @:InitKeyType = InitKeyType.Attribute,
+                    @:IsAutoCloseConnection = true 
+                @:});
+                @:_db.ChangeDatabase(dbLink.Id);
+                @:
+                @:try
+                @:{
+                    @:_db.BeginTran();
+                    
+                    @:await _db.Insertable<@(@Model.MainTable)Entity>(entity).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                    @:
+@*存在副表*@
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:entity@(@table.TableNo).@(@table.TableField) = entity.@(@table.RelationField);
+                    @:await _db.Insertable<@(@table.TableName)Entity>(entity@(table.TableNo)).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                    @:
+}
+@*存在子表*@
+@foreach(var table in Model.TableRelations)
+{
+                    @:if(@(@table.LowerTableName)EntityList.Count > 0)
+                    @:{
+                        @:foreach (var item in @(@table.LowerTableName)EntityList)
+                        @:{
+                            @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                            @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@*子表列配置*@
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@*存在单据控件*@
+@if(childer.hszKey == "billRule")
+{
+                            @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                        @:}
+                        @:await _db.Insertable<@(@table.TableName)Entity>(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                    @:}
+                    @:
+}
+
+                    @:_db.CommitTran();
+                @:}
+                @:catch (Exception)
+                @:{
+                    @:_db.RollbackTran();
+                    @:throw HSZException.Oh(ErrorCode.COM1000);
+                @:}
+}else{
+
+                @:try
+                @:{
+                    @:_db.BeginTran();
+                    @:
+                    @:await _@(@Model.LowerMainTable)Repository.AsInsertable(entity).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                    @:
+@*存在副表*@
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:entity@(@table.TableNo).@(@table.TableField) = entity.@(@table.RelationField);
+                    @:await _@(@table.LowerTableName)Repository.AsInsertable(entity@(table.TableNo)).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                    @:
+}
+@*子表列配置*@
+@foreach(var table in Model.TableRelations)
+{
+                    @:if(@(@table.LowerTableName)EntityList.Count > 0)
+                    @:{
+                        @:foreach (var item in @(@table.LowerTableName)EntityList)
+                        @:{
+                            @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                            @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@*子表列配置*@
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@*存在单据控件*@
+@if(childer.hszKey == "billRule")
+{
+                            @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                        @:}
+                        @:await _@(@table.LowerTableName)Repository.AsInsertable(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                    @:}
+                    @:
+}
+
+                    @:_db.CommitTran();
+
+                @:}
+                @:catch (Exception)
+                @:{
+                    @:_db.RollbackTran();
+                    @:throw HSZException.Oh(ErrorCode.COM1000);
+                @:}
+}
+            }else{
+@foreach(var column in Model.TableField){
+if(@column.hszKey == "modifyTime" && column.IsAuxiliary){
+                @:entity@(column.TableNo).@column.ColumnName = DateTime.Now;  
+}
+else if(@column.hszKey == "modifyUser" && column.IsAuxiliary){
+                @:entity@(column.TableNo).@column.ColumnName = _userManager.UserId;
+}
+else if(@column.hszKey == "modifyTime" && !column.IsAuxiliary){
+                @:entity.@column.ColumnName = DateTime.Now;  
+}
+else if(@column.hszKey == "modifyUser" && !column.IsAuxiliary){
+                @:entity.@column.ColumnName = _userManager.UserId;
+}
+}
+@*跨库*@
+@if(Model.DbLinkId != "0")
+{
+                @:var dbLink = await await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+                @:_db.AddConnection(new ConnectionConfig()
+                @:{
+                    @:ConfigId = dbLink.Id,
+                    @:DbType = _changeDataBase.ToDbType(dbLink.DbType),
+                    @:ConnectionString = _changeDataBase.ToConnectionString(dbLink),
+                    @:InitKeyType = InitKeyType.Attribute,
+                    @:IsAutoCloseConnection = true
+                @:});
+                @:_db.ChangeDatabase(dbLink.Id);
+                @:
+                @:try
+                @:{
+                    @://开启事务
+                    @:_db.BeginTran();
+                    @:
+                    @:await _db.Updateable<@(@Model.MainTable)Entity>(entity).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                    @:
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:await _db.Updateable<@(@table.TableName)Entity>(entity@(table.TableNo)).Where(it=> it.@(@table.TableField).Equals(entity.@(@table.RelationField))).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                    @:
+}
+@foreach(var table in Model.TableRelations)
+{
+                    @://清空原有数据
+                    @:await _db.Deleteable<@(@table.TableName)Entity>().Where(it => it.@(@table.TableField) == entity.@(@table.RelationField)).ExecuteCommandAsync();
+                    @:
+                    @://新增新数据
+                    @:if(@(@table.LowerTableName)EntityList.Count > 0)
+                    @:{
+                        @:foreach (var item in @(@table.LowerTableName)EntityList)
+                        @:{
+                            @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                            @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@if(childer.hszKey == "billRule")
+{
+                            @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                        @:}
+                        @:await _db.Insertable<@(@table.TableName)Entity>(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                    @:}
+}
+                    @:
+                    @://关闭事务
+                    @:_db.CommitTran();
+                @:}
+                @:catch (Exception)
+                @:{
+                    @://回滚事务
+                    @:_db.RollbackTran();
+                    @:throw HSZException.Oh(ErrorCode.COM1001);
+                @:}
+}else{
+                @:try
+                @:{
+                    @://开启事务
+                    @:_db.BeginTran();
+                    @:
+                    @:await _@(@Model.LowerMainTable)Repository.AsUpdateable(entity).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                    @:
+@foreach(var table in Model.AuxiliaryTable)
+{
+                    @:await _@(@table.LowerTableName)Repository.AsUpdateable(entity@(table.TableNo)).Where(it=> it.@(@table.TableField).Equals(entity.@(@table.RelationField))).IgnoreColumns(ignoreAllNullColumns: true).ExecuteCommandAsync();
+                    @:
+}
+@foreach(var table in Model.TableRelations)
+{
+                    @://清空原有数据
+                    @:await _@(@table.LowerTableName)Repository.AsDeleteable().Where(it => it.@(@table.TableField) == entity.@(@table.RelationField)).ExecuteCommandAsync();
+                    @:
+                    @://新增新数据
+                    @:if(@(@table.LowerTableName)EntityList.Count > 0)
+                    @:{
+                        @:foreach (var item in @(@table.LowerTableName)EntityList)
+                        @:{
+                            @:item.@(@table.PrimaryKey) = YitIdHelper.NextId().ToString();
+                            @:item.@(@table.TableField) = entity.@(@table.RelationField);
+@foreach(var childer in table.ChilderColumnConfigList)
+{
+@if(childer.hszKey == "billRule")
+{
+                            @:item.@(childer.ColumnName) = await _billRullService.GetBillNumber("@(@childer.Rule)");
+}
+}
+                        @:}
+                        @:await _@(@table.LowerTableName)Repository.AsInsertable(@(@table.LowerTableName)EntityList).ExecuteCommandAsync();
+                    @:}
+                    @:
+}
+                    @:
+                    @://关闭事务
+                    @:_db.CommitTran();
+                @:}
+                @:catch (Exception)
+                @:{
+                    @://回滚事务
+                    @:_db.RollbackTran();
+                    @:throw HSZException.Oh(ErrorCode.COM1001);
+                @:}
+}
+            }
+        }
+
+        #endregion
+
+        #region PublicMethod
+
+        /// <summary>
+        /// 工作流表单操作
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="obj"></param>
+        /// <param name="type">0：事前审批，1：创建子流程</param>
+        /// <returns></returns>
+        [NonAction]
+        public async Task Save(string id, object obj, int type)
+        {
+@if(Model.DbLinkId != "0")
+{
+            @:var dbLink = await _dbLinkService.GetInfo("@(@Model.DbLinkId)");
+            @:_db.AddConnection(new ConnectionConfig()
+            @:{
+                @:ConfigId = dbLink.Id,
+                @:DbType = _dataBaseService.ToDbType(dbLink.DbType),
+                @:ConnectionString = _dataBaseService.ToConnectionString(dbLink),
+                @:InitKeyType = InitKeyType.Attribute,
+                @:IsAutoCloseConnection = true
+            @:});
+            @:_db.ChangeDatabase(dbLink.Id);
+}
+            try
+            {
+                var input = obj.Serialize().Deserialize<@(@Model.MainTable)UpInput>();
+                var entity = input.Adapt<@(@Model.MainTable)Entity>();
+@foreach(var table in Model.AuxiliaryTable)
+{
+                @:var entity@(@table.TableNo) = input.Adapt<@(@table.TableName)Entity>();
+}
+@foreach(var table in Model.TableRelations){
+@:
+                @:var @(@table.LowerTableName)EntityList = input.@(@table.LowerTableName)List.Adapt<List<@(@table.TableName)Entity>>();
+}
+                if (type == 0)
+                {
+                    await this.HandleForm(id, entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+                        @:, entity@(@table.TableNo)
+}
+@foreach(var table in Model.TableRelations)
+{
+                        @:, @(@table.LowerTableName)EntityList
+}
+                        );
+                }
+                else
+                {
+                    entity.@(@Model.PrimaryKey) = id;
+                    await _db.Insertable(entity).IgnoreColumns(ignoreNullColumn: true).ExecuteCommandAsync();
+                }
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
+        }
+
+        #endregion
+    }
+}
+@{
+    @*获取多表联表实体(T,T1,T2...Tn)*@
+    void GetCodeAAuxiliaryEntity(){
+@:@(@Model.MainTable)Entity
+@foreach(var table in Model.AuxiliaryTable)
+{
+@:, @(@table.TableName)Entity
+}
+    }
+}
+@{
+    @*获取多表联表查询(a,a1,a2...aN)*@
+    void GenCodeAuxiliaryQueryParameters(){
+@:a
+@foreach(var auxiliary in Model.AuxiliaryTable)
+{
+@(", a" + auxiliary.TableNo)
+}
+    }
+}
+@{
+    @*获取关联表关系*@
+    void GetAssociativeTable(){
+@foreach(var auxiliary in Model.AuxiliaryTable){
+@if(auxiliary.TableNo == 1){
+@:JoinType.Left, a@(@auxiliary.TableNo).@(@auxiliary.TableField) == a.@(@auxiliary.RelationField)
+}else{
+@:, JoinType.Left, a@(@auxiliary.TableNo).@(@auxiliary.TableField) == a.@(@auxiliary.RelationField)
+}
+}    
+    }
+}
+@{
+    @*获取info输出参数*@
+    void GetEntityInfoOutput(){
+        @:flowId = a.@(@Model.DefaultFlowId),
+@foreach(var column in Model.TableField)
+{
+@if(column.PrimaryKey)
+{
+        @:@(@column.LowerColumnName) = a.@(@column.ColumnName),
+}
+else if(column.hszKey != null && !column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:@(@column.LowerColumnName)List = a.@(@column.ColumnName),
+}
+else
+{
+        @:@(@column.LowerColumnName) = a.@(@column.ColumnName),
+}
+break;
+case "checkbox":
+case "cascader":
+case "comSelect":
+case "address":
+case "uploadImg":
+case "uploadFz":
+        @:@(@column.LowerColumnName)List = a.@(@column.ColumnName),
+break;
+default:
+        @:@(@column.LowerColumnName) = a.@(@column.ColumnName),
+break;
+}
+}
+else if(column.hszKey != null && column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List = a@(@column.TableNo).@(@column.ColumnName),
+}
+else
+{
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = a@(@column.TableNo).@(@column.ColumnName),
+}
+break;
+case "checkbox":
+case "cascader":
+case "address":
+case "comSelect":
+case "uploadImg":
+case "uploadFz":
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List = a@(@column.TableNo).@(@column.ColumnName),
+break;
+default:
+        @:hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = a@(@column.TableNo).@(@column.ColumnName),
+break;
+}
+}
+}
+    }
+}
+@{
+    void GetMapprtInfoOutput(){
+@foreach(var column in Model.TableField)
+{
+if(column.hszKey != null && !column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:output.@(@column.LowerColumnName) =  output.@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "cascader":
+case "comSelect":
+case "address":
+@if(column.IsMultiple)
+{
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<List<string>>();
+}
+else{
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "checkbox":
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<string>();
+break;
+case "uploadImg":
+case "uploadFz":
+        @:output.@(@column.LowerColumnName) = output.@(@column.LowerColumnName)List.ToList<FileControlsModel>();
+break;
+}
+}
+else if(column.hszKey != null && column.IsAuxiliary)
+{
+switch(column.hszKey)
+{
+case "select":
+@if(column.IsMultiple)
+{
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "cascader":
+case "comSelect":
+case "address":
+@if(column.IsMultiple)
+{
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<List<string>>();
+}
+else{
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<string>();
+}
+break;
+case "checkbox":
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<string>();
+break;
+case "uploadImg":
+case "uploadFz":
+        @:output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName) = output.hsz_@(@column.TableName)_hsz_@(@column.LowerColumnName)List.ToList<FileControlsModel>();
+break;
+}
+}
+}
+    }
+}

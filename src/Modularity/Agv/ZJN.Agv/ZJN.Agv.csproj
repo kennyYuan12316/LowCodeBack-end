@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DocumentationFile>bin\Debug\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DocumentationFile>bin\Release\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\HSZ.Common.Core\HSZ.Common.Core.csproj" />
+    <ProjectReference Include="..\..\Wcs\ZJN.Wcs.Interfaces\ZJN.Wcs.Interfaces.csproj" />
+    <ProjectReference Include="..\..\Wms\HSZ.Wms\HSZ.Wms.csproj" />
+    <ProjectReference Include="..\..\WorkFlow\HSZ.WorkFlow.Interfaces\HSZ.WorkFlow.Interfaces.csproj" />
+    <ProjectReference Include="..\ZJN.Agv.Interfaces\ZJN.Agv.Interfaces.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="demo\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Quartz" Version="3.4.0" />
+  </ItemGroup>
+
+</Project>

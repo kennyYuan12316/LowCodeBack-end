@@ -1,0 +1,44 @@
+{
+  "WebSerivces": {
+    "LES": "http://10.79.5.14:30080/hitf/v1/soap/invoke",
+    "LESLogin": "http://10.79.5.14:30070/calb/tokenInfoGet",
+    "MESPolarinform": "http://10.79.5.10:9080/calb_mes/ws/polarInfromWs",
+    "MESFinishProPanel": "http://10.79.5.10:9080/calb_mes/ws/proPanelWs"
+  },
+  "LESLoagin": {
+    "UserName": "wms-itf",
+    "Password": "C"
+  },
+  "DbConnection": {
+    //ԭ���Ͽ�
+    "W1DataSource": "10.79.2.123",
+    "W1InitialCatalog": "zjnsys",
+    "W1UserID": "sa",
+    "W1Password": "sa",
+    //�ṹ����
+    "W2DataSource": "10.79.2.129",
+    "W2InitialCatalog": "zjnsys",
+    "W2UserID": "sa",
+    "W2Password": "sa",
+    //��Ʒ��
+    "W3DataSource": "10.79.2.133",
+    "W3InitialCatalog": "zjnsys",
+    "W3UserID": "sa",
+    "W3Password": "sa",
+    //�󼫾��
+    "J1DataSource": "10.79.2.127",
+    "J1InitialCatalog": "zjnsys",
+    "J1UserID": "sa",
+    "J1Password": "sa",
+    //С�����
+    "J2DataSource": "10.79.2.125",
+    "J2InitialCatalog": "zjnsys",
+    "J2UserID": "sa",
+    "J2Password": "sa",
+    //����ǰ�����
+    "J3DataSource": "10.79.2.131",
+    "J3InitialCatalog": "zjnsys",
+    "J3UserID": "sa",
+    "J3Password": "sa"
+  }
+}

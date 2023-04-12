@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Client\ZJN.Calb.Client.csproj" />
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Entitys\ZJN.Calb.Entitys.csproj" />
+
+    <ProjectReference Include="..\..\Common\HSZ.Common.Core\HSZ.Common.Core.csproj" />
+        <ProjectReference Include="..\HSZ.Wms.Entitys\HSZ.Wms.Entitys.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="BaseSupplier\" />
+    <Folder Include="BaseAisle\" />
+    <Folder Include="HardList\" />
+    <Folder Include="BaseGoods\" />
+    <Folder Include="HardSrm\" />
+    <Folder Include="BaseBill\" />
+    <Folder Include="TaskInterface\" />
+    <Folder Include="zjnWorkDevice\" />
+    <Folder Include="TaskInterfaceApplyLog\" />
+    <Folder Include="zjnBaseLesGoods\" />
+    <Folder Include="ZjnWmsRoadwayGroup\" />
+    <Folder Include="TableT1\" />
+    <Folder Include="hltHrEmployee\" />
+    <Folder Include="hltHrDepartment\" />
+    <Folder Include="hltHrPost\" />
+    <Folder Include="hltHrBusiness\" />
+    <Folder Include="hltHrFactory\" />
+    <Folder Include="hltHrJob\" />
+    <Folder Include="hltHrTemplate\" />
+    <Folder Include="hltHrShineupon\" />
+    <Folder Include="hltHrRegular\" />
+    <Folder Include="hltHrLog\" />
+    <Folder Include="hltHrError\" />
+    <Folder Include="hltHrTransfer\" />
+    <Folder Include="hltHrUnusual\" />
+    <Folder Include="hltHrSynchronize\" />
+    <Folder Include="hltHrT1\" />
+    <Folder Include="hltHrT2\" />
+    <Folder Include="hltHrT3\" />
+    <Folder Include="hltHrT4\" />
+    <Folder Include="hltHrT5\" />
+    <Folder Include="hltHrT6\" />
+    <Folder Include="hltT\" />
+    <Folder Include="test01\" />
+  </ItemGroup>
+
+</Project>

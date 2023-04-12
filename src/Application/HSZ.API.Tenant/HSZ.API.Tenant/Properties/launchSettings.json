@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "HSZ.API.Tenant": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      //"applicationUrl": "https://localhost:51532;http://localhost:51535"
+      "applicationUrl": "http://localhost:51532"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DocumentationFile>bin\Debug\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DocumentationFile>bin\Release\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="HSZ.Authentication.JwtBearer" Version="1.0.0" />
+	  <PackageReference Include="HSZ.Expand.Thirdparty" Version="1.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\..\..\ZJN.Plc\ZJN.Plc.csproj" />
+		<ProjectReference Include="..\..\App\HSZ.App.Interfaces\HSZ.Apps.Interfaces.csproj" />
+		<ProjectReference Include="..\..\Common\HSZ.Common.Core\HSZ.Common.Core.csproj" />
+		<ProjectReference Include="..\..\Message\HSZ.Message.Interfaces\HSZ.Message.Interfaces.csproj" />
+		<ProjectReference Include="..\..\TaskSchedule\HSZ.TaskScheduler.Interfaces\HSZ.TaskScheduler.Interfaces.csproj" />
+		<ProjectReference Include="..\..\VisualDev\HSZ.VisualDev.Interfaces\HSZ.VisualDev.Interfaces.csproj" />
+		<ProjectReference Include="..\..\Wms\HSZ.Wms.Entitys\HSZ.Wms.Entitys.csproj" />
+		<ProjectReference Include="..\..\Wms\HSZ.Wms.Interfaces\HSZ.Wms.Interfaces.csproj" />
+		<ProjectReference Include="..\..\WorkFlow\HSZ.WorkFlow.Interfaces\HSZ.WorkFlow.Interfaces.csproj" />
+	</ItemGroup>
+
+</Project>

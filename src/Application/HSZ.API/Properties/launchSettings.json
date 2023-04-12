@@ -1,0 +1,76 @@
+{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:58504",
+      "sslPort": 0
+    }
+  },
+  "profiles": {
+
+    "电芯成品库": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "DevProduction" //DevRawMaterial/DevFrameMember/DevProduction
+      },
+      "dotnetRunMessages": "true",
+      "applicationUrl": "http://localhost:58504"
+    },
+    "原材料库": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "DevRawMaterial" //DevRawMaterial/DevFrameMember/DevProduction
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:58504"
+    },
+    "原材料库温泉": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "DevRawMaterial-WQ" //DevRawMaterial/DevFrameMember/DevProduction
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:58504"
+    },
+    "结构件库": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "DevFrameMember" //DevRawMaterial/DevFrameMember/DevProduction
+      },
+      "dotnetRunMessages": "true",
+      "applicationUrl": "http://localhost:58504"
+    },
+    //yml测试环境
+    "于明亮": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "DevProduction-YML" //DevRawMaterial/DevFrameMember/DevProduction
+      },
+      "dotnetRunMessages": "true",
+      "applicationUrl": "http://localhost:58504"
+    },
+    //成品公共机
+    "成品现场公共机": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "DevProduction-ggj" //DevRawMaterial/DevFrameMember/DevProduction
+      },
+      "dotnetRunMessages": "true",
+      "applicationUrl": "http://localhost:58504"
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "DevRawMaterial" //DevRawMaterial/DevFrameMember/DevProduction
+      }
+    }
+  }
+}

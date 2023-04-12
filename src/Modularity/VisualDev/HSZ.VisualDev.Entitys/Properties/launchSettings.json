@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "HSZ.VisualDev.Entitys": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:51279;http://localhost:51280"
+    }
+  }
+}

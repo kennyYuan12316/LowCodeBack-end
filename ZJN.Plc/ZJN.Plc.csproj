@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="S7netplus" Version="0.14.0" />
+    <PackageReference Include="Sharp7" Version="1.1.82" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Modularity\Common\HSZ.Common.Core\HSZ.Common.Core.csproj" />
+  </ItemGroup>
+
+</Project>

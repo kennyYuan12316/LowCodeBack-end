@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "ZJN.Calb.Entitys": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:51341;http://localhost:51342"
+    }
+  }
+}

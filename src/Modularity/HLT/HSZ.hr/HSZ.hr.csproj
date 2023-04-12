@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DocumentationFile>bin\Debug\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DocumentationFile>bin\Release\$(AssemblyName).xml</DocumentationFile>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ZJN.Plc\ZJN.Plc.csproj" />
+    <ProjectReference Include="..\..\Agv\ZJN.Agv.Entitys\ZJN.Agv.Entitys.csproj" />
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Client\ZJN.Calb.Client.csproj" />
+    <ProjectReference Include="..\..\Calb\ZJN.Calb.Entitys\ZJN.Calb.Entitys.csproj" />
+    <ProjectReference Include="..\..\Message\HSZ.Message\HSZ.Message.csproj" />
+    <ProjectReference Include="..\..\Wcs\ZJN.Wcs.Entitys\ZJN.Wcs.Entitys.csproj" />
+    <ProjectReference Include="..\..\Wcs\ZJN.Wcs.Interfaces\ZJN.Wcs.Interfaces.csproj" />
+    <ProjectReference Include="..\..\WorkFlow\HSZ.WorkFlow.Interfaces\HSZ.WorkFlow.Interfaces.csproj" />
+    <ProjectReference Include="..\HSZ.hr.Interfaces\HSZ.hr.Interfaces.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="S7.Net">
+      <HintPath>..\..\..\..\docs\dll\S7.Net.dll</HintPath>
+    </Reference>
+    <Reference Include="Sharp7">
+      <HintPath>..\..\..\..\docs\dll\Sharp7.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="tableA\" />
+    <Folder Include="tableB\" />
+    <Folder Include="tableC\" />
+    <Folder Include="tableD\" />
+    <Folder Include="tableE\" />
+    <Folder Include="tableF\" />
+    <Folder Include="tableG\" />
+    <Folder Include="tableH\" />
+    <Folder Include="tableI\" />
+    <Folder Include="tableJ\" />
+    <Folder Include="tableL\" />
+    <Folder Include="tableM\" />
+    <Folder Include="tableN\" />
+  </ItemGroup>
+
+</Project>

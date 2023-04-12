@@ -1,0 +1,1075 @@
+<template>
+	<view class="hsz-wrap hsz-wrap-form">
+		<u-form :model="@(@Model.FormDataModel.formModel)" :rules="@(@Model.FormDataModel.formRules)" ref="@(@Model.FormDataModel.formModel)" :errorType="['toast']" label-position="@(@Model.FormDataModel.labelPosition)" label-width="@(@Model.FormDataModel.labelWidth)" label-align="left" class="hsz-form">
+			@{GenCodeAppFormControls();}
+		</u-form>
+	</view>
+</template>
+<script>
+    import {getDictionaryDataSelector,getDataInterfaceRes} from '@@/api/common'
+	import comMixin from '../mixin'
+    import request from '@@/utils/request'
+    export default {
+		mixins: [comMixin],
+		name:"@(@Model.EnCode)",
+        data() {
+            return {
+                btnLoading: false,
+@foreach(var item in @Model.OptionsList)
+{
+@if(item.hszKey == "tab")
+{
+				@:@(@item.LowerName)Current:@(@item.Content),
+}
+}
+                @(@Model.FormDataModel.formModel): {
+                    @(@Model.FormPrimaryKey):'',
+					flowId:'',
+@foreach(var children in Model.FormList)
+{
+@switch(children.hszKey)
+{
+case "checkbox":
+case "cascader":
+case "uploadImg":
+case "uploadFz":
+case "address":
+case "comSelect":
+@if(children.DefaultValue == null || children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):[],
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+break;
+case "select":
+@if(children.Multiple)
+{
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):[],
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+}else{
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):"@(@children.DefaultValue)",
+}
+}
+break;
+case "numInput":
+case "date":
+case "rate":
+case "slider":
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+break;
+case "switch":
+					@:@(@children.LowerName):@(@children.DefaultValue ? "1" : "0"),
+break;
+case "table":
+					@:@(@children.LowerName)List:[],
+break;
+default:
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):"@(@children.DefaultValue)",
+}
+break;
+}
+}
+                },
+                rules: {
+@foreach(var item in Model.FormList)
+{
+@if(item.Required || (item.RegList!=null && item.RegList.Count > 0))
+{
+					@:@(@item.LowerName):[
+@if(item.Required)
+{
+						@:{
+							@:required:true,
+							@:message:'请输入@(@item.Placeholder)',
+@if(item.Trigger.Contains("["))
+{
+							@:trigger:@(@item.Trigger)
+}
+else
+{
+							@:trigger:'@(@item.Trigger)'
+}
+
+						@:},
+}
+@if(item.RegList!=null && item.RegList.Count > 0)
+{
+@foreach(var items in item.RegList)
+{
+						@:{
+							@:pattern:@(@items.pattern),
+							@:message:'@(@items.message)',
+if(item.Trigger.Contains("["))
+{
+							@:trigger:@(@item.Trigger)
+}
+else
+{
+							@:trigger:'@(@item.Trigger)'
+}
+						@:},
+}
+}
+					@:],
+}
+}
+                },
+@foreach(var item in Model.OptionsList)
+{
+@if(item.hszKey == "collapse")
+{
+				@:@(@item.Name):@(@item.Content),
+}
+else if(item.hszKey == "tab")
+{
+				@:@(@item.Name)Title:@(@item.Title),
+				@:@(@item.Name):"@(@item.Content)",
+}
+else{
+@if(item.IsProps)
+{
+				@:@(@item.LowerName)Props:@(item.Props),
+}
+				@:@item.Content
+}
+}
+            };
+        },
+		watch: {
+			dataForm: {
+				handler(val, oldVal) {
+@foreach(var item in Model.FormList)
+{
+@if(item.hszKey == "table" && item.ShowSummary)
+{
+					@:this.@(@item.LowerName)()
+}
+}
+                },
+                deep: true
+			}
+        },
+        created() {
+@foreach(var item in @Model.OptionsList)
+{
+@if(!item.IsStatic && (item.IsChildren || item.IsIndex))
+{
+			@:this.get@(@item.LowerName)Options();
+}
+}
+			this.selfInit();
+        },
+        onReady() {
+            this.$refs.@(@Model.FormDataModel.formModel).setRules(this.rules);
+        },
+        methods: {
+@foreach(var item in @Model.OptionsList)
+{
+@if(item.hszKey == "tab")
+{
+			@:@(@item.LowerName)Change(index)
+			@:{
+				@:this.@(@item.LowerName)Current = index;
+			@:},
+}
+@if(!item.IsStatic && item.DictionaryType !=null)
+{
+			@:get@(@item.LowerName)Options(){
+switch(@item.DataType)
+{
+case "dictionary":
+				@:getDictionaryDataSelector('@(@item.DictionaryType)').then(res => {
+					@:this.@(@item.LowerName)Options = res.data.list
+	break;
+case "dynamic":
+				@:getDataInterfaceRes('@(@item.DictionaryType)').then(res => {
+					@:let data = this.hsz.interfaceDataHandler(res.data)
+					@:this.@(@item.LowerName)Options = data
+	break;
+}
+				@:});
+			@:},
+}
+}
+			selfGetInfo() {
+				this.$store.commit('base/UPDATE_RELATION_DATA', {})
+				this.loading = true
+                request({
+                    url: '/api/@(@Model.NameSpace)/@(@Model.ClassName)/' + this.dataForm.@(@Model.FormPrimaryKey),
+                    method: 'get',
+                }).then(res => {
+						this.@(@Model.FormDataModel.formModel) = res.data
+@foreach(var item in Model.FormList)
+{
+@if(item.hszKey == "checkbox" || item.hszKey == "cascader" || item.hszKey == "uploadImg" || item.hszKey == "uploadFz" || item.hszKey == "address" || item.hszKey == "comSelect")
+{
+						@:if(!this.@(@Model.FormDataModel.formModel).@(@item.LowerName))this.@(@Model.FormDataModel.formModel).@(@item.LowerName)=[];
+}
+}
+					this.loading = false
+                })
+            },
+			selfSubmit() {
+                this.@(@Model.FormDataModel.formModel).flowState = this.eventType === 'submit' ? 0 : 1
+                if (this.eventType === 'save') return this.selfHandleRequest()
+                uni.showModal({
+                    title: '提示',
+                    content: '您确定要提交当前流程吗？',
+                    success: res => {
+                        if (res.confirm) {
+                            this.selfHandleRequest()
+                        }
+                    }
+                })
+            },
+			submit(eventType) {
+				this.eventType = eventType
+				this.$refs['@(@Model.FormDataModel.formModel)'].validate((valid) => {
+					if (valid) {
+						if (eventType === 'save' || eventType === 'submit') {
+							if (this.selfSubmit && typeof this.selfSubmit === "function") {
+								this.selfSubmit(this.@(@Model.FormDataModel.formModel))
+								return
+							}
+						}
+						this.$emit('eventReceiver', this.@(@Model.FormDataModel.formModel), eventType)
+					}
+				})
+			},
+			selfHandleRequest() {
+                if (this.@(@Model.FormDataModel.formModel).@(@Model.FormPrimaryKey)) {
+                    request({
+                        url: '/api/@(@Model.NameSpace)/@(@Model.ClassName)/' + this.@(@Model.FormDataModel.formModel).@(@Model.FormPrimaryKey),
+                        method: 'put',
+                        data: this.@(@Model.FormDataModel.formModel),
+                    }).then(res => {
+                        uni.showToast({
+                            title: res.msg,
+                            complete: () => {
+                                setTimeout(() => {
+                                    uni.$emit('refresh')
+                                    uni.navigateBack()
+                                }, 1500)
+                            }
+                        })
+                    })
+                }
+				else
+				{
+                    request({
+                        url: '/api/@(@Model.NameSpace)/@(@Model.ClassName)',
+                        method: 'post',
+                        data: this.@(@Model.FormDataModel.formModel),
+                    }).then(res => {
+                        uni.showToast({
+                            title: res.msg,
+                            complete: () => {
+                                setTimeout(() => {
+                                    uni.$emit('refresh')
+                                    uni.navigateBack()
+                                }, 1500)
+                            }
+                        })
+                    })
+                }
+            },
+			selfInit(data){
+				this.@(@Model.FormDataModel.formModel).flowId = data.flowId
+@foreach(var item in Model.FormList)
+{
+@if(item.hszKey == "table")
+{
+				@:this.add@(@item.Name)()
+}
+}
+			},
+@foreach(var item in Model.FormList)
+{
+@if(item.hszKey == "table")
+{
+			@:add@(@item.Name)() {
+				@:let item = {
+@foreach(var children in item.ChildrenList)
+{
+@switch(children.hszKey)
+{
+case "checkbox":
+case "cascader":
+case "uploadImg":
+case "uploadFz":
+case "address":
+case "comSelect":
+@if(children.DefaultValue == null || children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):[],
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+break;
+case "select":
+@if(children.Multiple)
+{
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):[],
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+}else{
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):"@(@children.DefaultValue)",
+}
+}
+break;
+case "numInput":
+case "date":
+case "rate":
+case "slider":
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):@(@children.DefaultValue),
+}
+break;
+case "switch":
+					@:@(@children.LowerName):@(@children.DefaultValue ? "1" : "0"),
+break;
+default:
+if(@children.DefaultValue == null || @children.DefaultValue.ToString() == "")
+{
+					@:@(@children.LowerName):undefined,
+}else{
+					@:@(@children.LowerName):"@(@children.DefaultValue)",
+}
+break;
+}
+}
+				@:}
+				@:this.@(@Model.FormDataModel.formModel).@(@item.LowerName)List.push(item)
+			@:},
+			@:del@(@item.Name)(i) {
+				@:this.@(@Model.FormDataModel.formModel).@(@item.LowerName)List.splice(i, 1);
+			@:},
+@if(item.ShowSummary)
+{
+			@:@(@item.LowerName)(){
+				 @:let table = this.@(@Model.FormDataModel.formModel).@(@item.LowerName)List
+				 @:let summaryField = @(@item.SummaryField)
+                 @:let summaryFieldName = {
+@foreach(var items in item.ChildrenList)
+{
+@if(items.IsSummary)
+{
+					@:"@(@items.Name)":"@(@items.Placeholder)",
+}
+}
+                 @:}
+				 @:let data = {}
+                 @:for (let i in summaryField) {
+					@:let map = {}
+					@:let val = 0
+					@:for (let j = 0; j < table.length; j++) {
+						@:let summary = table[j][summaryField[i]];
+						@:if (summary) {
+							@:let data = isNaN(summary) ? 0 : Number(summary)
+							@:val += data
+						@:}
+					@:}
+					@:map.id = summaryField[i];
+					@:map.name = summaryFieldName[summaryField[i]];
+					@:map.val = val;
+					@:data[summaryField[i]] = map;
+				@:}
+				@:return data;
+			@:},
+}
+}
+}
+        }
+    };
+</script>
+
+@{
+    void GenCodeAppFormControls()
+	{
+@foreach(var item in Model.FormAllContols)
+{
+@switch(item.hszKey)
+{
+case "table":
+			@:<view class="hsz-table">
+				@:<view class="hsz-table-item" v-for="(item,i) in @(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List" :key="i">
+					@:<view class="hsz-table-item-title u-flex u-row-between">
+						@:<text class="hsz-table-item-title-num">@(@item.Label)({{i+1}})</text>
+						@:<template v-if="!setting.readonly && !judgeWrite('@(@item.LowerChildTableName)')">
+							@:<view class="hsz-table-item-title-action" v-if="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List.length > 1" @@click="del@(@item.ChildTableName)(i)">删除</view>
+						@:</template>
+                    @:</view>
+@foreach(var children in item.Children)
+{
+@switch(children.hszKey)
+{
+case "uploadFz":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-file v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.IsDisabled)@(@children.Limit)@(@children.SizeUnit)@(@children.FileSize)@(@children.Accept)/>
+					@:</u-form-item>
+break;
+case "comSelect":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+					    @:<hsz-com-select type="organize" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-com-select>
+					@:</u-form-item>
+break;
+case "address":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-city-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Level)@(@children.IsDisabled)></hsz-city-select>
+					@:</u-form-item>
+break;
+case "billRule":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+                        @:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" placeholder="系统自动生成" @(@children.IsDisabled)></u-input>
+                    @:</u-form-item>
+break;
+case "userSelect":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-user-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-user-select>
+					@:</u-form-item>
+break;
+case "treeSelect":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-tree-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" :options="@(@children.LowerName)Options" :props="@(@children.LowerName)Props" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-tree-select>
+                    @:</u-form-item>
+break;
+case "posSelect":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-org-select type="position" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-org-select>
+                    @:</u-form-item>
+break;
+case "depSelect":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-org-select type="department" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-org-select>
+					@:</u-form-item>
+break;
+case "select":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder):options="@(@children.LowerName)Options" :props="@(@children.LowerName)Props" @(@children.Multiple)@(@children.IsDisabled)></hsz-select>
+					@:</u-form-item>
+break;
+case "cascader":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-cascader v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder):options="@(@children.LowerName)Options" :props="@(@children.LowerName)Props" @(@children.Multiple)@(@children.IsDisabled)></hsz-cascader>
+					@:</u-form-item>
+break;
+case "numInput":
+                    @:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<u-number-box v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" :input-width="120" :input-height="60" :positive-integer="false" @(@children.Max)@(@children.Min)@(@children.Step)@(@children.IsDisabled)></u-number-box>
+					@:</u-form-item>
+break;
+case "date":
+case "time":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-date-time @(@children.Type)v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.IsDisabled)></hsz-date-time>
+					@:</u-form-item>
+break;
+case "switch":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<view class="u-flex u-form-item-switch">
+							@:<hsz-switch v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)"  @(@children.IsDisabled)></hsz-switch>
+						@:</view>
+					@:</u-form-item>
+break;
+case "comInput":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.IsDisabled)></u-input>
+					@:</u-form-item>
+break;
+@*关联表单*@
+case "relationForm":
+					@:<u-form-item  label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-relation-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.IsDisabled)@(@children.RelationField)@(@children.ColumnOptions)@(@children.ModelId)@(@children.Placeholder)@(@children.HasPage)@(@children.PageSize):vModel="'@(@children.Name)'+i" type="relation"></hsz-relation-select>
+					@:</u-form-item>
+break;
+@*关联表单属性*@
+case "relationFormAttr":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.RelationField)">
+						@:<hsz-relation-attr showField="@(@children.ShowField)" :relationField="'@(@children.RelationField)'+i" type='relationFormAttr'></hsz-relation-attr>
+					@:</u-form-item>
+break;
+@*弹窗选择*@
+case "popupSelect":
+					@:<u-form-item label="@(@children.Label)"prop="@(@children.LowerName)" @(@children.Required)>
+						@:<hsz-popup-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.IsDisabled)@(@children.PropsValue)@(@children.RelationField)@(@children.ColumnOptions)@(@children.InterfaceId)@(@children.Placeholder)@(@children.HasPage)@(@children.PageSize)@(@children.PopupType)@(@children.PopupTitle)@(@children.PopupWidth):vModel="'@(@children.Name)'+i" type="popup"></hsz-popup-select>
+					@:</u-form-item>
+break;
+@*弹窗选择属性*@
+case "popupAttr":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.RelationField)">
+						@:<hsz-relation-attr showField="@(@children.ShowField)" :relationField="'@(@children.RelationField)'+i" type='popupAttr'></hsz-relation-attr>
+					@:</u-form-item>
+break;
+case "textarea":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(children.Required)>
+						@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" type="textarea" @(@children.MaxLength)@(@children.Placeholder)@(@children.IsDisabled)/>
+					@:</u-form-item>
+break;
+}
+}
+                @:</view>
+				@:<view class="hsz-table-addBtn" @@click="add@(@item.ChildTableName)" v-if="!setting.readonly && !judgeWrite('@(@item.LowerChildTableName)')">
+					@:<u-icon name="plus" color="#2979ff"></u-icon>添加
+				@:</view>
+@if(item.ShowSummary)
+{
+				@:<view class="hsz-table-item">
+					@:<view class="hsz-table-item-title u-flex u-row-between">
+						@:<text class="hsz-table-item-title-num">@(@item.Label)合计</text>
+					@:</view>
+					@:<u-form-item v-for="(item,i) in @(@item.LowerChildTableName)()" :key="i" :label="item.name">
+						@:<p>{{item.val}}</p>
+					@:</u-form-item>
+				@:</view>
+}
+			@:</view>
+break;
+case "groupTitle":
+			@:<hsz-group content="@(@item.Content)" content-position="@(@item.Contentposition)"></hsz-group>
+break;
+case "divider":
+			@:<u-divider half-width="200" height="80">@(@item.Default)</u-divider>
+break;
+case "card":
+case "row":
+			@:<view class="hsz-card">
+				@:<view class="hsz-card-cap u-line-1">@(@item.Content)</view>
+@{GenCodeAppFormChildrenControls(item.Children);}
+			@:</view>
+break;
+case "comInput":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.MaxLength)@(@item.Placeholder)@(@item.IsDisabled)></u-input>
+			@:</u-form-item>
+break;
+case "textarea":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" type="textarea" @(@item.MaxLength)@(@item.Placeholder)@(@item.IsDisabled)/>
+            @:</u-form-item>
+break;
+case "numInput":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<u-number-box v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :input-width="120" :input-height="60" @(@item.Max)@(@item.Min)@(@item.Step)@(@item.IsDisabled)></u-number-box>
+            @:</u-form-item>
+break;
+case "switch":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<view class="u-flex u-form-item-switch">
+					@:<hsz-switch v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)></hsz-switch>
+                @:</view>
+            @:</u-form-item>
+break;
+case "radio":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<u-radio-group v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)>
+					@:<u-radio v-for="(option, index) in @(@item.LowerName)Options" :key="index" :name="option['@(@item.Props.value)']">{{option['@(@item.Props.label)']}}</u-radio>
+                @:</u-radio-group>
+            @:</u-form-item>
+break;
+case "checkbox":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<hsz-checkbox v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.IsDisabled)></hsz-checkbox>
+            @:</u-form-item>
+break;
+case "select":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<hsz-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.Placeholder)@(@item.Multiple)@(@item.IsDisabled)></hsz-select>
+            @:</u-form-item>
+break;
+case "cascader":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<hsz-cascader v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.Placeholder)@(@item.IsDisabled)></hsz-cascader>
+            @:</u-form-item>
+break;
+case "address":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<hsz-city-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Level)@(@item.Placeholder)@(@item.IsDisabled)@(@item.Multiple)></hsz-city-select>
+            @:</u-form-item>
+break;
+case "treeSelect":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<hsz-tree-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.Placeholder)@(@item.Multiple)@(@item.IsDisabled)></hsz-tree-select>
+            @:</u-form-item>
+break;
+case "HSZText":
+			@:<hsz-text value="@(@item.DefaultValue)" :textStyle='@(@item.TextStyle)'/>
+break;
+case "uploadImg":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<hsz-upload v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)></hsz-upload>
+            @:</u-form-item>
+break;
+case "uploadFz":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<hsz-file v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)@(@item.Limit)@(@item.SizeUnit)@(@item.FileSize)@(@item.Accept)/>
+            @:</u-form-item>
+break;
+case "rate":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<u-rate v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" size="40" :count="@(@item.Count)" @(@item.Readonly)@(@item.AllowHalf)@(@item.IsDisabled)></u-rate>
+            @:</u-form-item>
+break;
+case "slider":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<u-slider v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Step)@(@item.Min)@(@item.Max)@(@item.IsDisabled)style="width: 100%;">
+					@:<view class="slider-badge-button">{{@(@Model.FormDataModel.formModel).@(@item.LowerName)}}</view>
+                @:</u-slider>
+            @:</u-form-item>
+break;
+case "time":
+case "date":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<hsz-date-time @(@item.Type)v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Placeholder)@(@item.IsDisabled)></hsz-date-time>
+            @:</u-form-item>
+break;
+case "comSelect":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<hsz-com-select type="organize" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-com-select>
+            @:</u-form-item>
+break;
+case "depSelect":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<hsz-org-select type="department" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-org-select>
+            @:</u-form-item>
+break;
+case "posSelect":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<hsz-org-select type="position" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-org-select>
+            @:</u-form-item>
+break;
+case "userSelect":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+                @:<hsz-user-select  v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-user-select>
+            @:</u-form-item>
+break;
+case "tab":
+			@:<view prop="@(@item.LowerName)">
+				@:<u-tabs :is-scroll="false" :list="@(@item.LowerName)Title" name="title" :current="@(@item.LowerName)Current" @@change="@(@item.LowerName)Change"></u-tabs>
+				@:<view>
+@{ int n = 0;}
+@foreach(var tab in item.Children)
+{
+					@:<view v-if="@(@n) == @(@item.LowerName)Current">
+@{GenCodeAppFormChildrenControls(tab.Children);}
+					@:</view>
+					@{n++;}
+}
+				@:</view>
+			@:</view>
+break;
+case "collapse":
+			@:<view prop="@(@item.LowerName)">
+				@:<template>
+					@:<view class="collapse">
+						@:<u-collapse v-model="@(@item.Name)" :accordion="@(@item.Accordion)">
+@foreach(var collapse in item.Children)
+{
+							@:<u-collapse-item class="collapse-item" name="@(@collapse.Name)" title="@(@collapse.Title)">
+@{GenCodeAppFormChildrenControls(collapse.Children);}
+							@:</u-collapse-item>
+}
+						@:</u-collapse>
+					@:</view>
+				@:</template>
+			@:</view>
+break;
+@*关联表单*@
+case "relationForm":
+			@:<u-form-item  label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<hsz-relation-select @(@item.vModel)@(@item.IsDisabled)@(@item.RelationField)@(@item.ColumnOptions)@(@item.ModelId)@(@item.Placeholder)@(@item.HasPage)@(@item.PageSize)vModel="@(@item.Name)" type="relation"></hsz-relation-select>
+			@:</u-form-item>
+break;
+@*关联表单属性*@
+case "relationFormAttr":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.RelationField)">
+				@:<hsz-relation-attr showField="@(@item.ShowField)" relationField="@(@item.RelationField)" type='relationFormAttr'></hsz-relation-attr>
+			@:</u-form-item>
+break;
+@*弹窗选择*@
+case "popupSelect":
+			@:<u-form-item label="@(@item.Label)"prop="@(@item.LowerName)" @(@item.IsRequired)>
+				@:<hsz-popup-select @(@item.vModel)@(@item.IsDisabled)@(@item.PropsValue)@(@item.RelationField)@(@item.ColumnOptions)@(@item.InterfaceId)@(@item.Placeholder)@(@item.HasPage)@(@item.PageSize)@(@item.PopupType)@(@item.PopupTitle)@(@item.PopupWidth)vModel="@(@item.Name)" type="popup"></hsz-popup-select>
+            @:</u-form-item>
+break;
+@*弹窗选择属性*@
+case "popupAttr":
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.RelationField)">
+				@:<hsz-relation-attr showField="@(@item.ShowField)" relationField="@(@item.RelationField)" type='popupAttr'></hsz-relation-attr>
+			@:</u-form-item>
+break;
+case "colorPicker":
+case "editor":
+break;
+case "button":
+			@:<u-form-item>
+				@:<hsz-button buttonText="@(@item.ButtonText)" align="@(@item.Align)" type="@(@item.Type)"></hsz-button>
+            @:</u-form-item>
+break;
+default:
+			@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.NoShow)>
+                @:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" placeholder="系统自动生成" @(@item.IsDisabled)></u-input>
+            @:</u-form-item>
+break;
+}
+}
+	}
+}
+@{
+	void GenCodeAppFormChildrenControls(ICollection<CodeGenFormAllControlsDesign> childrenList)
+	{
+@foreach(var item in childrenList)
+{
+@switch(item.hszKey)
+{
+case "table":
+				@:<view class="hsz-table">
+					@:<view class="hsz-table-item" v-for="(item,i) in @(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List" :key="i">
+						@:<view class="hsz-table-item-title u-flex u-row-between">
+							@:<text class="hsz-table-item-title-num">@(@item.Label)({{i+1}})</text>
+							@:<template v-if="!setting.readonly && !judgeWrite('@(@item.LowerChildTableName)')">
+								@:<view class="hsz-table-item-title-action" v-if="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List.length > 1" @@click="del@(@item.ChildTableName)(i)">删除</view>
+							@:</template>
+						@:</view>
+@foreach(var children in item.Children)
+{
+@switch(children.hszKey)
+{
+case "uploadFz":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-file v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.IsDisabled)@(@children.Limit)@(@children.SizeUnit)@(@children.FileSize)@(@children.Accept)/>
+						@:</u-form-item>
+break;
+case "comSelect":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-com-select type="organize" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-com-select>
+						@:</u-form-item>
+break;
+case "address":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-city-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Level)@(@children.IsDisabled)@(@children.Multiple)></hsz-city-select>
+						@:</u-form-item>
+break;
+case "billRule":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" placeholder="系统自动生成" @(@children.IsDisabled)></u-input>
+						@:</u-form-item>
+break;
+case "userSelect":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-user-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-user-select>
+						@:</u-form-item>
+break;
+case "treeSelect":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-tree-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" :options="@(@children.LowerName)Options" :props="@(@children.LowerName)Props" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-tree-select>
+						@:</u-form-item>
+break;
+case "posSelect":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-org-select type="position" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-org-select>
+						@:</u-form-item>
+break;
+case "depSelect":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-org-select type="department" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.Multiple)@(@children.IsDisabled)></hsz-org-select>
+						@:</u-form-item>
+break;
+case "select":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder):options="@(@children.LowerName)Options" :props="@(@children.LowerName)Props" @(@children.Multiple)@(@children.IsDisabled)></hsz-select>
+						@:</u-form-item>
+break;
+case "cascader":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-cascader v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder):options="@(@children.LowerName)Options" :props="@(@children.LowerName)Props" @(@children.Multiple)@(@children.IsDisabled)></hsz-cascader>
+						@:</u-form-item>
+break;
+case "numInput":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<u-number-box v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" :input-width="120" :input-height="60" :positive-integer="false" @(@children.Max)@(@children.Min)@(@children.Step)@(@children.IsDisabled)></u-number-box>
+						@:</u-form-item>
+break;
+case "time":
+case "date":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-date-time @(@children.Type)v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.IsDisabled)></hsz-date-time>
+						@:</u-form-item>
+break;
+case "switch":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<view class="u-flex u-form-item-switch">
+								@:<hsz-switch v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)"  @(@children.IsDisabled)></hsz-switch>
+							@:</view>
+						@:</u-form-item>
+break;
+case "comInput":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.Placeholder)@(@children.IsDisabled)></u-input>
+						@:</u-form-item>
+break;
+@*关联表单*@
+case "relationForm":
+						@:<u-form-item  label="@(@children.Label)" prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-relation-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.IsDisabled)@(@children.RelationField)@(@children.ColumnOptions)@(@children.ModelId)@(@children.Placeholder)@(@children.HasPage)@(@children.PageSize):vModel="'@(@children.LowerName)'+i" type="relation"></hsz-relation-select>
+						@:</u-form-item>
+break;
+@*关联表单属性*@
+case "relationFormAttr":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.RelationField)">
+							@:<hsz-relation-attr showField="@(@children.ShowField)" :relationField="'@(@children.RelationField)'+i" type='relationFormAttr'></hsz-relation-attr>
+						@:</u-form-item>
+break;
+@*弹窗选择*@
+case "popupSelect":
+						@:<u-form-item label="@(@children.Label)"prop="@(@children.LowerName)" @(@children.Required)>
+							@:<hsz-popup-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" @(@children.IsDisabled)@(@children.PropsValue)@(@children.RelationField)@(@children.ColumnOptions)@(@children.InterfaceId)@(@children.Placeholder)@(@children.HasPage)@(@children.PageSize)@(@children.PopupType)@(@children.PopupTitle)@(@children.PopupWidth):vModel="'@(@children.LowerName)'+i" type="popup"></hsz-popup-select>
+						@:</u-form-item>
+break;
+@*弹窗选择属性*@
+case "popupAttr":
+						@:<u-form-item label="@(@children.Label)" prop="@(@children.RelationField)">
+							@:<hsz-relation-attr showField="@(@children.ShowField)" :relationField="'@(@children.RelationField)'+i" type='popupAttr'></hsz-relation-attr>
+						@:</u-form-item>
+break;
+case "textarea":
+					@:<u-form-item label="@(@children.Label)" prop="@(@children.LowerName)" @(children.Required)>
+						@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerChildTableName)List[i].@(@children.LowerName)" type="textarea" @(@children.MaxLength)@(@children.Placeholder)@(@children.IsDisabled)/>
+					@:</u-form-item>
+break;
+}
+}
+					@:</view>
+					@:<view class="hsz-table-addBtn" @@click="add@(@item.ChildTableName)" v-if="!setting.readonly && !judgeWrite('@(@item.LowerChildTableName)')">
+						@:<u-icon name="plus" color="#2979ff"></u-icon>添加
+					@:</view>
+@if(item.ShowSummary)
+{
+					@:<view class="hsz-table-item">
+						@:<view class="hsz-table-item-title u-flex u-row-between">
+							@:<text class="hsz-table-item-title-num">@(@item.Label)合计</text>
+						@:</view>
+						@:<u-form-item v-for="(item,i) in @(@item.LowerChildTableName)()" :key="i" :label="item.name">
+							@:<p>{{item.val}}</p>
+						@:</u-form-item>
+					@:</view>
+}
+				@:</view>
+break;
+case "groupTitle":
+				@:<hsz-group content="@(@item.Content)" content-position="@(@item.Contentposition)"></hsz-group>
+break;
+case "divider":
+				@:<u-divider half-width="200" height="80">@(@item.Default)</u-divider>
+break;
+case "card":
+case "row":
+				@:<view class="hsz-card">
+					@:<view class="hsz-card-cap u-line-1">@(@item.Content)</view>
+@{GenCodeAppFormChildrenControls(item.Children);}
+				@:</view>
+break;
+case "comInput":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.MaxLength)@(@item.Placeholder)@(@item.IsDisabled)></u-input>
+				@:</u-form-item>
+break;
+case "textarea":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" type="textarea" @(@item.MaxLength)@(@item.Placeholder)@(@item.IsDisabled)/>
+				@:</u-form-item>
+break;
+case "numInput":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<u-number-box v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :input-width="120" :input-height="60" @(@item.Max)@(@item.Min)@(@item.Step)@(@item.IsDisabled)></u-number-box>
+				@:</u-form-item>
+break;
+case "switch":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<view class="u-flex u-form-item-switch">
+						@:<hsz-switch v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)></hsz-switch>
+					@:</view>
+				@:</u-form-item>
+break;
+case "radio":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<u-radio-group v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)>
+						@:<u-radio v-for="(option, index) in @(@item.LowerName)Options" :key="index" :name="option['@(@item.Props.value)']">{{option['@(@item.Props.label)']}}</u-radio>
+					@:</u-radio-group>
+				@:</u-form-item>
+break;
+case "checkbox":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-checkbox v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.IsDisabled)></hsz-checkbox>
+				@:</u-form-item>
+break;
+case "select":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.Placeholder)@(@item.Multiple)@(@item.IsDisabled)></hsz-select>
+				@:</u-form-item>
+break;
+case "cascader":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-cascader v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.Placeholder)@(@item.IsDisabled)></hsz-cascader>
+				@:</u-form-item>
+break;
+case "address":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-city-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Level)@(@item.Placeholder)@(@item.IsDisabled)@(@item.Multiple)></hsz-city-select>
+				@:</u-form-item>
+break;
+case "treeSelect":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-tree-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" :options="@(@item.LowerName)Options" :props="@(@item.LowerName)Props" @(@item.Placeholder)@(@item.Multiple)@(@item.IsDisabled)></hsz-tree-select>
+				@:</u-form-item>
+break;
+case "HSZText":
+				@:<hsz-text value="@(@item.DefaultValue)" :textStyle='@(@item.TextStyle)'/>
+break;
+case "uploadImg":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-upload v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)></hsz-upload>
+				@:</u-form-item>
+break;
+case "uploadFz":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-file v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.IsDisabled)@(@item.Limit)@(@item.SizeUnit)@(@item.FileSize)@(@item.Accept)/>
+				@:</u-form-item>
+break;
+case "rate":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<u-rate v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" size="40" :count="@(@item.Count)" @(@item.Readonly)@(@item.AllowHalf)@(@item.IsDisabled)></u-rate>
+				@:</u-form-item>
+break;
+case "slider":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<u-slider v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Step)@(@item.Min)@(@item.Max)@(@item.IsDisabled)style="width: 100%;">
+						@:<view class="slider-badge-button">{{@(@Model.FormDataModel.formModel).@(@item.LowerName)}}</view>
+					@:</u-slider>
+				@:</u-form-item>
+break;
+case "time":
+case "date":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-date-time @(@item.Type)v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Placeholder)@(@item.IsDisabled)></hsz-date-time>
+				@:</u-form-item>
+break;
+case "comSelect":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-com-select type="organize" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-com-select>
+				@:</u-form-item>
+break;
+case "depSelect":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-org-select type="department" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-org-select>
+				@:</u-form-item>
+break;
+case "posSelect":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-org-select type="position" v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-org-select>
+				@:</u-form-item>
+break;
+case "userSelect":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-user-select v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" @(@item.Multiple)@(@item.Placeholder)@(@item.IsDisabled)></hsz-user-select>
+				@:</u-form-item>
+break;
+@*关联表单*@
+case "relationForm":
+				@:<u-form-item  label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-relation-select @(@item.vModel)@(@item.IsDisabled)@(@item.RelationField)@(@item.ColumnOptions)@(@item.ModelId)@(@item.Placeholder)@(@item.HasPage)@(@item.PageSize)vModel="@(@item.Name)" type="relation"></hsz-relation-select>
+				@:</u-form-item>
+break;
+@*关联表单属性*@
+case "relationFormAttr":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.RelationField)">
+					@:<hsz-relation-attr showField="@(@item.ShowField)" relationField="@(@item.RelationField)" type='relationFormAttr'></hsz-relation-attr>
+				@:</u-form-item>
+break;
+@*弹窗选择*@
+case "popupSelect":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.IsRequired)>
+					@:<hsz-popup-select @(@item.vModel)@(@item.IsDisabled)@(@item.PropsValue)@(@item.RelationField)@(@item.ColumnOptions)@(@item.InterfaceId)@(@item.Placeholder)@(@item.HasPage)@(@item.PageSize)@(@item.PopupType)@(@item.PopupTitle)@(@item.PopupWidth)vModel="@(@item.Name)" type="popup"></hsz-popup-select>
+				@:</u-form-item>
+break;
+@*弹窗选择属性*@
+case "popupAttr":
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.RelationField)">
+					@:<hsz-relation-attr showField="@(@item.ShowField)" relationField="@(@item.RelationField)" type='popupAttr'></hsz-relation-attr>
+				@:</u-form-item>
+break;
+case "tab":
+				@:<view prop="@(@item.LowerName)">
+					@:<u-tabs :is-scroll="false" :list="@(@item.LowerName)Title" name="title" :current="@(@item.LowerName)Current" @@change="@(@item.LowerName)Change"></u-tabs>
+					@:<view>
+@{ int m = 0;}
+@foreach(var collapse in item.Children)
+{
+						@:<view v-if="@(@m) == @(@item.LowerName)Current">
+@{GenCodeAppFormChildrenControls(collapse.Children);}
+						@:</view>
+						@{m++;}
+}
+					@:</view>
+				@:</view>
+break;
+case "collapse":
+				@:<view prop="@(@item.LowerName)">
+					@:<template>
+						@:<view class="collapse">
+							@:<u-collapse v-model="@(@item.Name)" :accordion="@(@item.Accordion)">
+@foreach(var collapse in item.Children)
+{
+								@:<u-collapse-item class="collapse-item" name="@(@collapse.Name)" title="@(@collapse.Title)">
+@{GenCodeAppFormChildrenControls(collapse.Children);}
+								@:</u-collapse-item>
+}
+							@:</u-collapse>
+						@:</view>
+					@:</template>
+				@:</view>
+break;
+case "colorPicker":
+case "editor":
+break;
+case "button":
+				@:<u-form-item>
+					@:<hsz-button buttonText="@(@item.ButtonText)" align="@(@item.Align)" type="@(@item.Type)"></hsz-button>
+				@:</u-form-item>
+break;
+default:
+				@:<u-form-item label="@(@item.Label)" prop="@(@item.LowerName)" @(@item.NoShow)>
+					@:<u-input v-model="@(@Model.FormDataModel.formModel).@(@item.LowerName)" placeholder="系统自动生成" @(@item.IsDisabled)></u-input>
+				@:</u-form-item>
+break;
+}
+}
+	}
+}

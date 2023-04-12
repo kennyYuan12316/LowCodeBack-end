@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Dto\AgvTaskStatus\ZjnBaseStdTaskstatusCrInput.cs~RF1a20d2d.TMP" />
+    <None Remove="Entity\ZjnBaseStdTaskstatusEntity.cs~RF19e77f1.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\HSZ.Common\HSZ.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Dto\demo\" />
+    <Folder Include="Entity\demo\" />
+    <Folder Include="Mapper\demo\" />
+  </ItemGroup>
+
+</Project>

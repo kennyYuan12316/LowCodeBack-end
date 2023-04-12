@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <EnableUnsafrBinaryFormatterSerialization>true</EnableUnsafrBinaryFormatterSerialization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modularity\App\HSZ.App\HSZ.Apps.csproj" />
+    <ProjectReference Include="..\..\Modularity\Extend\HSZ.Extend\HSZ.Extend.csproj" />
+    <ProjectReference Include="..\..\Modularity\Message\HSZ.Message\HSZ.Message.csproj" />
+    <ProjectReference Include="..\..\Modularity\OAuth\HSZ.OAuth\HSZ.OAuth.csproj" />
+    <ProjectReference Include="..\..\Modularity\SubDev\HSZ.SubDev\HSZ.SubDev.csproj" />
+    <ProjectReference Include="..\..\Modularity\System\HSZ.System\HSZ.System.csproj" />
+    <ProjectReference Include="..\..\Modularity\TaskSchedule\HSZ.TaskScheduler\HSZ.TaskScheduler.csproj" />
+    <ProjectReference Include="..\..\Modularity\VisualData\HSZ.VisualData\HSZ.VisualData.csproj" />
+    <ProjectReference Include="..\..\Modularity\VisualDev\HSZ.VisualDev.Run.Core\HSZ.VisualDev.Run.Core.csproj" />
+    <ProjectReference Include="..\..\Modularity\VisualDev\HSZ.VisualDev\HSZ.VisualDev.csproj" />
+    <ProjectReference Include="..\..\Modularity\WorkFlow\HSZ.WorkFlow\HSZ.WorkFlow.csproj" />
+    <ProjectReference Include="..\..\Modularity\Wms\HSZ.Wms\HSZ.Wms.csproj" />
+	<ProjectReference Include="..\..\Modularity\Wcs\ZJN.Wcs\ZJN.Wcs.csproj" />
+	<ProjectReference Include="..\..\Modularity\Agv\ZJN.Agv\ZJN.Agv.csproj" />
+	<ProjectReference Include="..\..\Modularity\Calb\ZJN.Calb\ZJN.Calb.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+{
+  "ExtendedData": {
+    "inputs": [
+      "C:/Users/cl158/Desktop/tokenInfoGet_1.wsdl"
+    ],
+    "collectionTypes": [
+      "System.Array",
+      "System.Collections.Generic.Dictionary`2"
+    ],
+    "namespaceMappings": [
+      "*, ServiceReferenceLESLogin"
+    ],
+    "targetFramework": "net5.0",
+    "typeReuseMode": "All"
+  }
+}

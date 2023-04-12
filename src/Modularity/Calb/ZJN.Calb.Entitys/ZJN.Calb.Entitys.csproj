@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Common\HSZ.Common\HSZ.Common.csproj" />
+    <ProjectReference Include="..\..\Wms\HSZ.Wms.Entitys\HSZ.Wms.Entitys.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Entity\demo\" />
+    <Folder Include="Mapper\demo\" />
+  </ItemGroup>
+
+</Project>

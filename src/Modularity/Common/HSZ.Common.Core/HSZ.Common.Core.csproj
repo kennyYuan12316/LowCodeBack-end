@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Handler\VisualDevSubscribeHandler.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\System\HSZ.System.Interfaces\HSZ.System.Interfaces.csproj" />
+		<ProjectReference Include="..\..\TaskSchedule\HSZ.TaskScheduler.Entitys\HSZ.TaskScheduler.Entitys.csproj" />
+		<ProjectReference Include="..\..\Wms\HSZ.Wms.Entitys\HSZ.Wms.Entitys.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Manager\DataBase\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="HSZ.Logging.Serilog" Version="1.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="S7.Net">
+	    <HintPath>C:\Users\Administrator\Documents\WXWork\1688854739401403\Cache\File\2022-10\WH22004_plc1003\WH22004_plc\Zjn.Siem\bin\Debug\S7.Net.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Sharp7">
+	    <HintPath>C:\Users\Administrator\Documents\WXWork\1688854739401403\Cache\File\2022-10\WH22004_plc1003\WH22004_plc\Zjn.Siem\bin\Debug\Sharp7.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Zjn.Siem">
+	    <HintPath>C:\Users\Administrator\Documents\WXWork\1688854739401403\Cache\File\2022-10\WH22004_plc1003\WH22004_plc\Zjn.Siem\bin\Debug\Zjn.Siem.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Message\HSZ.Message.Entitys\HSZ.Message.Entitys.csproj" />
+    <ProjectReference Include="..\..\VisualData\HSZ.VisualData.Entitys\HSZ.VisualData.Entitys.csproj" />
+    <ProjectReference Include="..\..\VisualDev\HSZ.VisualDev.Entitys\HSZ.VisualDev.Entitys.csproj" />
+    <ProjectReference Include="..\HSZ.System.Entitys\HSZ.System.Entitys.csproj" />
+  </ItemGroup>
+
+</Project>
